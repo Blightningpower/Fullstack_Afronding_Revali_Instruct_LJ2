@@ -1,0 +1,11 @@
+node_modules/
+dist/
+.env
+.vscode/
+*.log
+*.sqlite
+.DS_Store
+coverage/
+bin/
+obj/
+*.user
