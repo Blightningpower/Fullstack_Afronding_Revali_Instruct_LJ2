@@ -1,11 +1,37 @@
+# Node / frontend
 node_modules/
 dist/
+
+# Environment / secrets
 .env
-.vscode/
-*.log
-*.sqlite
-.DS_Store
-coverage/
+user-secrets.json
+
+# .NET / Visual Studio
+.vs/
 bin/
 obj/
 *.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Build outputs
+publish/
+*.dll
+*.exe
+
+# Database files (lokale DBs)
+*.sqlite
+*.db
+*.mdf
+*.ldf
+
+# Docker / compose
+.env.*.local
+docker-compose.override.yml
+
+# Misc
+.DS_Store
+*.log
+coverage/
+*.sqlite3

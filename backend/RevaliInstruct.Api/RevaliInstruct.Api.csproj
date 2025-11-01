@@ -16,12 +16,13 @@
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
     <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="9.0.10" />
-    <PackageReference Include="Pomelo.EntityFrameworkCore.MySql" Version="9.0.0" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="9.0.6" />
+    <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.14.0" />
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\RevaliInstruct.Core\RevaliInstruct.Core.csproj" />
-  </ItemGroup>
+  <ProjectReference Include="..\RevaliInstruct.Core\RevaliInstruct.Core.csproj" />
+</ItemGroup>
+
 
 </Project>

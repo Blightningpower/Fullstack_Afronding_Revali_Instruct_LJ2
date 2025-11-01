@@ -1,29 +1,27 @@
-version: "3.8"
 services:
-  mysql:
-    image: mysql:8.0
-    container_name: revali_mysql
-    env_file: .env
+
+  mssql:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: revali_mssql
     environment:
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
-      MYSQL_DATABASE: ${MYSQL_DATABASE}
-      MYSQL_USER: ${MYSQL_USER}
-      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      - ACCEPT_EULA=Y
+      - MSSQL_SA_PASSWORD=${MSSQL_SA_PASSWORD}
     ports:
-      - "3307:3306"
+      - "1433:1433"
     volumes:
-      - revali_mysql_data:/var/lib/mysql
+      - ./sql-scripts:/scripts:ro
     healthcheck:
-      test: ["CMD", "mysqladmin" ,"ping","-p${MYSQL_ROOT_PASSWORD}"]
+      test: ["CMD", "/opt/mssql-tools/bin/sqlcmd", "-S", "localhost", "-U", "sa", "-P", "${MSSQL_SA_PASSWORD}", "-Q", "select 1"]
       interval: 10s
-      timeout: 5s
-      retries: 5
+      retries: 10
 
-  adminer:
-    image: adminer
-    restart: always
+  api:
+    build: ./backend/RevaliInstruct.Api
+    dockerfile: backend/RevaliInstruct.Api/Dockerfile
+    environment:
+      - ConnectionStrings__DefaultConnection=Server=mssql,1433;Database=${MSSQL_DATABASE};User Id=${MSSQL_USER};Password=${MSSQL_PASSWORD};TrustServerCertificate=True;MultipleActiveResultSets=true;
+      - JWT__Secret=${JWT_SECRET}
     ports:
-      - "8080:8080"
-
-volumes:
-  revali_mysql_data:
+      - "5000:80"
+    depends_on:
+      - mssql

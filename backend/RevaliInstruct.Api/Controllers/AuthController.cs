@@ -1,15 +1,16 @@
-using System.IdentityModel.Tokens.Jwt;
-using System.Security.Claims;
 using System.Text;
+using System.Security.Claims;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
-using RevaliInstruct.Api.Data;
+using System.IdentityModel.Tokens.Jwt;
+using RevaliInstruct.Core.Data;
 using RevaliInstruct.Api.Models;
 
 namespace RevaliInstruct.Api.Controllers
 {
     [ApiController]
-    [Route("auth")]
+    [Route("api/[controller]")]
     public class AuthController : ControllerBase
     {
         private readonly ApplicationDbContext _ctx;
@@ -22,23 +23,34 @@ namespace RevaliInstruct.Api.Controllers
         }
 
         [HttpPost("login")]
-        public IActionResult Login([FromBody] AuthRequest req)
+        public async Task<IActionResult> Login([FromBody] AuthRequest req)
         {
-            var user = _ctx.Users.SingleOrDefault(u => u.Username == req.Username);
-            if (user == null) return Unauthorized(new { message = "Gebruiker niet gevonden" });
+            if (req == null || string.IsNullOrWhiteSpace(req.Username) || string.IsNullOrWhiteSpace(req.Password))
+                return BadRequest(new { message = "Username en wachtwoord zijn verplicht" });
 
+            // async DB-query
+            var user = await _ctx.Users.SingleOrDefaultAsync(u => u.Username == req.Username);
+
+            if (user == null)
+                return Unauthorized(new { message = "Gebruiker niet gevonden" });
+
+            // bcrypt verify (zorg dat je BCrypt.Net-Next package hebt)
             bool ok = BCrypt.Net.BCrypt.Verify(req.Password, user.PasswordHash);
             if (!ok) return Unauthorized(new { message = "Onjuist wachtwoord" });
 
-            var secret = _config["Jwt:Secret"] ?? throw new InvalidOperationException("Jwt Secret ontbreekt");
+            // JWT secret ophalen (kijk in appsettings of env vars)
+            var secret = _config["Jwt:Secret"] ?? _config["JWT__Secret"];
+            if (string.IsNullOrEmpty(secret))
+                throw new InvalidOperationException("Jwt Secret ontbreekt (configureer Jwt:Secret of env JWT__Secret)");
+
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secret));
             var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
             var claims = new[]
             {
                 new Claim(JwtRegisteredClaimNames.Sub, user.UserId.ToString()),
-                new Claim(ClaimTypes.Name, user.Username),
-                new Claim(ClaimTypes.Role, user.Role)
+                new Claim(ClaimTypes.Name, user.Username ?? string.Empty),
+                new Claim(ClaimTypes.Role, user.Role ?? string.Empty)
             };
 
             var token = new JwtSecurityToken(
@@ -50,15 +62,17 @@ namespace RevaliInstruct.Api.Controllers
             var tokenHandler = new JwtSecurityTokenHandler();
             var tokenString = tokenHandler.WriteToken(token);
 
-            var resp = new AuthResponse
+            return Ok(new
             {
-                Token = tokenString,
-                Username = user.Username,
-                Role = user.Role,
-                DisplayName = user.DisplayName
-            };
-
-            return Ok(resp);
+                token = tokenString,
+                user = new
+                {
+                    id = user.UserId,
+                    username = user.Username,
+                    displayName = user.DisplayName,
+                    role = user.Role
+                }
+            });
         }
     }
 }
