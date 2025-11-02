@@ -8,7 +8,7 @@ namespace RevaliInstruct.Core.Entities
         public string? Role { get; set; }
         public string? DisplayName { get; set; }
 
-        // audit velden optioneel
+        // audit velden
         public DateTime CreatedAt { get; set; }
         public string? CreatedBy { get; set; }
     }

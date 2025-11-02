@@ -1,11 +1,10 @@
 namespace RevaliInstruct.Core.Entities
 {
-    // Enum met de mogelijke statussen van een patiënt
     public enum PatientStatus
     {
-        IntakeGepland,
-        Actief,
-        Afgerond,
-        OnHold
+        IntakeGepland = 0,
+        Actief = 1,
+        Afgerond = 2,
+        OnHold = 3
     }
 }

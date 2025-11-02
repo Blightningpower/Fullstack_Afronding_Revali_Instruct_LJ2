@@ -35,3 +35,6 @@ docker-compose.override.yml
 *.log
 coverage/
 *.sqlite3
+
+# Lokale settings (niet committen)
+appsettings.Local.json

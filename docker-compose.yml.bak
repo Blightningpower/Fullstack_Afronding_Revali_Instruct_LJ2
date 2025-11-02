@@ -1,4 +1,6 @@
-﻿services:
+﻿version: "3.8"
+
+services:
   mssql:
     image: mcr.microsoft.com/mssql/server:2022-latest
     container_name: revali_mssql
@@ -33,10 +35,8 @@
 
   api:
     build:
-      context: .
-      dockerfile: backend/RevaliInstruct.Api/Dockerfile
-    env_file:
-      - .env
+      context: ./backend
+      dockerfile: RevaliInstruct.Api/Dockerfile
     environment:
       - ConnectionStrings__DefaultConnection=Server=mssql,1433;Database=${MSSQL_DATABASE};User Id=${MSSQL_USER};Password=${MSSQL_PASSWORD};TrustServerCertificate=True;MultipleActiveResultSets=true;
       - JWT__Secret=${JWT_SECRET}

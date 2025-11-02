@@ -8,7 +8,7 @@ using RevaliInstruct.Core.Data;
 
 #nullable disable
 
-namespace RevaliInstruct.Api.Migrations
+namespace RevaliInstruct.Core.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
     partial class ApplicationDbContextModelSnapshot : ModelSnapshot
