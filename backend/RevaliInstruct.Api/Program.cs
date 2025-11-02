@@ -201,6 +201,195 @@ app.Use(async (ctx, next) =>
 });
 
 app.UseAuthorization();
+
+// Voeg dossier endpoint toe (US2: Patiëntendossier Inzien)
+// 1 handler, 2 routes (/api/... en legacy zonder prefix)
+async Task<IResult> DossierHandler(int id, ApplicationDbContext db, CancellationToken ct)
+{
+    var p = await db.Patients.AsNoTracking().FirstOrDefaultAsync(x => x.Id == id, ct);
+    if (p is null) return Results.NotFound(new { message = "Patient not found" });
+
+    var patient = new BasicPatientDto
+    {
+        Id = p.Id,
+        FirstName = p.FirstName,
+        LastName = p.LastName,
+        Email = null,
+        Phone = null,
+        ReferringDoctor = null,
+        DateOfBirth = p.DateOfBirth == DateTime.MinValue ? null : p.DateOfBirth,
+        StartDate = p.StartDate == DateTime.MinValue ? null : p.StartDate,
+        Status = p.Status.ToString()
+    };
+
+    // Demo/fallback invulling voor contactgegevens
+    var r = new Random(id);
+    string safeLast = (patient.LastName ?? "").Replace(" ", "").ToLowerInvariant();
+    if (string.IsNullOrWhiteSpace(patient.Email) && !string.IsNullOrWhiteSpace(patient.FirstName) && !string.IsNullOrWhiteSpace(patient.LastName))
+        patient.Email = $"{char.ToLowerInvariant(patient.FirstName![0])}.{safeLast}@examplehospital.nl";
+    if (string.IsNullOrWhiteSpace(patient.Phone))
+        patient.Phone = $"06-{r.Next(10000000, 99999999)}";
+    if (string.IsNullOrWhiteSpace(patient.ReferringDoctor))
+        patient.ReferringDoctor = $"Huisarts {Convert.ToChar('A' + r.Next(0, 26))}";
+
+    // Exercises
+    var exerciseNames = new[] { "Kniebuiging", "Schouder abductie", "Heuplift", "Enkel cirkels", "Quadriceps stretch", "Hamstring stretch", "Core stabiliteit" };
+    var exercises = Enumerable.Range(1, r.Next(3, 6))
+        .Select(i => new ExerciseDto
+        {
+            Id = i,
+            Name = exerciseNames[r.Next(exerciseNames.Length)],
+            Status = r.NextDouble() < 0.5 ? "Toegewezen" : "Afgevinkt"
+        })
+        .ToArray();
+
+    // Pain timeline (laatste 14 dagen)
+    var pains = Enumerable.Range(0, 14)
+        .Select(d => new PainEntryDto
+        {
+            Date = DateTime.UtcNow.Date.AddDays(-d),
+            Level = r.Next(1, 10),
+            Note = r.NextDouble() < 0.25 ? "Na oefening licht toegenomen" : null
+        })
+        .OrderBy(x => x.Date)
+        .ToArray();
+
+    // Activities (laatste week)
+    var activityNames = new[] { "Wandelen", "Fietsen", "Huishoudelijk werk", "Zwemmen", "Krachttraining" };
+    var activities = Enumerable.Range(0, r.Next(2, 5))
+        .Select(i => new ActivityLogDto
+        {
+            Date = DateTime.UtcNow.Date.AddDays(-r.Next(0, 7)),
+            Activity = activityNames[r.Next(activityNames.Length)],
+            Notes = r.NextDouble() < 0.3 ? "Ging goed" : null
+        })
+        .OrderByDescending(x => x.Date)
+        .ToArray();
+
+    // Medications
+    var medCatalog = new (string name, string dose)[] {
+        ("Paracetamol", "500 mg 1-3x/dag"),
+        ("Ibuprofen", "400 mg 1-2x/dag"),
+        ("Naproxen", "250 mg 2x/dag")
+    };
+    var meds = Enumerable.Range(0, r.Next(0, 3))
+        .Select(_ => {
+            var m = medCatalog[r.Next(medCatalog.Length)];
+            return new MedicationDto { Name = m.name, Dosage = m.dose };
+        })
+        .ToArray();
+
+    // Accessories
+    var accCatalog = new[] { "Elastische band (medium)", "Kniebrace", "Enkelbandage", "Schouderband" };
+    var accessories = Enumerable.Range(0, r.Next(0, 3))
+        .Select(_ => new AccessoryDto
+        {
+            Name = accCatalog[r.Next(accCatalog.Length)],
+            Instructions = "Gebruik tijdens oefening of activiteit"
+        })
+        .ToArray();
+
+    // Appointments (2 verleden, 1 toekomst)
+    var apptTypes = new[] { "Intake", "Controle", "Evaluatie" };
+    var appointments = new[]
+    {
+        new AppointmentDto { Date = DateTime.UtcNow.AddDays(-21), Type = apptTypes[r.Next(apptTypes.Length)], Status = "Afgerond" },
+        new AppointmentDto { Date = DateTime.UtcNow.AddDays(-7),  Type = apptTypes[r.Next(apptTypes.Length)], Status = "Afgerond" },
+        new AppointmentDto { Date = DateTime.UtcNow.AddDays(7),   Type = apptTypes[r.Next(apptTypes.Length)], Status = "Gepland" }
+    };
+
+    var dossier = new DossierDto
+    {
+        Patient = patient,
+        Exercises = exercises,
+        PainTimeline = pains,
+        Activities = activities,
+        Medications = meds,
+        Accessories = accessories,
+        Appointments = appointments
+    };
+
+    return Results.Ok(dossier);
+}
+
+app.MapGet("/api/patients/{id:int}/dossier", DossierHandler);
+app.MapGet("/patients/{id:int}/dossier", DossierHandler);
+
 app.MapControllers();
 app.Urls.Add("http://localhost:5000");
 await app.RunAsync();
+
+#region DTOs voor dossier (US2)
+internal sealed class PatientsListItemDto
+{
+    public int Id { get; set; }
+    public string? FirstName { get; set; }
+    public string? LastName { get; set; }
+    public DateTime? StartDate { get; set; }
+    public string? Status { get; set; }
+}
+
+internal sealed class DossierDto
+{
+    public BasicPatientDto Patient { get; set; } = default!;
+    public IEnumerable<ExerciseDto> Exercises { get; set; } = Enumerable.Empty<ExerciseDto>();
+    public IEnumerable<PainEntryDto> PainTimeline { get; set; } = Enumerable.Empty<PainEntryDto>();
+    public IEnumerable<ActivityLogDto> Activities { get; set; } = Enumerable.Empty<ActivityLogDto>();
+    public IEnumerable<MedicationDto> Medications { get; set; } = Enumerable.Empty<MedicationDto>();
+    public IEnumerable<AccessoryDto> Accessories { get; set; } = Enumerable.Empty<AccessoryDto>();
+    public IEnumerable<AppointmentDto> Appointments { get; set; } = Enumerable.Empty<AppointmentDto>();
+}
+
+internal sealed class BasicPatientDto
+{
+    public int Id { get; set; }
+    public string? FirstName { get; set; }
+    public string? LastName { get; set; }
+    public string? Email { get; set; }
+    public string? Phone { get; set; }
+    public string? ReferringDoctor { get; set; }
+    public DateTime? DateOfBirth { get; set; }
+    public DateTime? StartDate { get; set; }
+    public string? Status { get; set; }
+}
+
+internal sealed class ExerciseDto
+{
+    public int Id { get; set; }
+    public string? Name { get; set; }
+    public string? Status { get; set; } // bv. 'Toegewezen', 'Afgevinkt'
+}
+
+internal sealed class PainEntryDto
+{
+    public DateTime Date { get; set; }
+    public int Level { get; set; } // 0-10
+    public string? Note { get; set; }
+}
+
+internal sealed class ActivityLogDto
+{
+    public DateTime Date { get; set; }
+    public string? Activity { get; set; }
+    public string? Notes { get; set; }
+}
+
+internal sealed class MedicationDto
+{
+    public string? Name { get; set; }
+    public string? Dosage { get; set; }
+}
+
+internal sealed class AccessoryDto
+{
+    public string? Name { get; set; }
+    public string? Instructions { get; set; }
+}
+
+internal sealed class AppointmentDto
+{
+    public DateTime Date { get; set; }
+    public string? Type { get; set; } // bv. intake, controle
+    public string? Status { get; set; } // gepland/afgerond
+}
+#endregion

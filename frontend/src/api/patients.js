@@ -33,3 +33,8 @@ export const getPatientById = async (id) => {
   const response = await api.get(`/patients/${id}`)
   return response.data
 }
+
+export const getPatientDossier = async (id) => {
+  const res = await api.get(`/patients/${id}/dossier`)
+  return res.data
+}

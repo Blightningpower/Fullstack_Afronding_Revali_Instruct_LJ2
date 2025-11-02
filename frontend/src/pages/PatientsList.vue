@@ -3,20 +3,22 @@
     <div class="patient-table-card">
       <h2>Patiënten Overzicht</h2>
 
-      <div class="patient-table-controls">
-        <input v-model="q" type="text" placeholder="🔍 Zoek op naam..." />
-        <select v-model="status">
+      <form class="patient-table-controls" @submit.prevent="load" novalidate>
+        <label for="q" class="visually-hidden">Zoek op naam</label>
+        <input id="q" name="q" v-model="q" type="text" placeholder="🔍 Zoek op naam..." autocomplete="name" />
+
+        <label for="status" class="visually-hidden">Status filter</label>
+        <select id="status" name="status" v-model="status" autocomplete="off">
           <option value="">Alle statussen</option>
           <option v-for="s in knownStatuses" :key="s" :value="s">{{ s }}</option>
         </select>
-        <button @click="load">Zoek</button>
-      </div>
+
+        <button type="submit">Zoek</button>
+      </form>
 
       <div v-if="loading" class="loading-state">⏳ Laden...</div>
       <div v-else-if="error" class="error-state">⚠️ {{ error }}</div>
-      <div v-else-if="items.length === 0" class="empty-state">
-        Geen patiënten gevonden
-      </div>
+      <div v-else-if="items.length === 0" class="empty-state">Geen patiënten gevonden</div>
       <table v-else>
         <thead>
           <tr>
@@ -82,3 +84,11 @@ const goDetail = (id) => router.push(`/patients/${id}`)
 
 onMounted(load)
 </script>
+
+<style>
+/* eenvoudige helper voor verborgen labels t.b.v. a11y */
+.visually-hidden {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden;
+  clip: rect(0,0,0,0); white-space: nowrap; border: 0;
+}
+</style>
