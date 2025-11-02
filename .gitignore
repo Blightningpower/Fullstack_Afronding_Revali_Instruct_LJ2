@@ -1,19 +1,42 @@
 # Node / frontend
-node_modules/
-dist/
+frontend/node_modules/
+frontend/dist/
 
 # Environment / secrets
 .env
+.env.*
+!.env.example
+!.env.template
+*.env.local
+*.env.bak
 user-secrets.json
 
 # .NET / Visual Studio
 .vs/
+.vscode/
 bin/
 obj/
 *.user
 *.suo
 *.userosscache
 *.sln.docstates
+*.csproj.user
+*.cache
+*.ide
+
+# NuGet
+*.nupkg
+.nuget/
+packages/
+**/*.csproj.nuget.*
+**/*.csproj.EntityFrameworkCore.targets
+**/obj/project.assets.json
+
+# EF tooling output
+**/Migrations/**/obj/
+**/obj/project.assets.json
+**/*.csproj.nuget.*
+**/*.csproj.EntityFrameworkCore.targets
 
 # Build outputs
 publish/
@@ -29,6 +52,7 @@ publish/
 # Docker / compose
 .env.*.local
 docker-compose.override.yml
+docker-compose.yml.bak
 
 # Misc
 .DS_Store
@@ -38,3 +62,28 @@ coverage/
 
 # Lokale settings (niet committen)
 appsettings.Local.json
+
+# .NET build
+**/bin/
+**/obj/
+**/TestResults/
+*.user
+*.csproj.user
+*.suo
+
+# IDE/OS
+.vs/
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Env/secrets (bewaar alleen voorbeelden)
+.env
+.env.*
+!.env.example
+!.env.template
+
+# Misc
+logs/
+*.log
+*.http

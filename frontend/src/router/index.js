@@ -5,12 +5,10 @@ import PatientDetail from '../pages/PatientDetail.vue'
 const routes = [
   { path: '/', redirect: '/patients' },
   { path: '/patients', component: PatientsList },
-  { path: '/patients/:id', component: PatientDetail, props: true },
+  { path: '/patients/:id', component: PatientDetail, props: true }
 ]
 
-const router = createRouter({
+export default createRouter({
   history: createWebHistory(),
-  routes,
+  routes
 })
-
-export default router

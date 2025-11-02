@@ -5,83 +5,69 @@ namespace RevaliInstruct.Core.Data
 {
     public class ApplicationDbContext : DbContext
     {
-        public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : base(options)
-        {
-        }
+        public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
+            : base(options) { }
 
-        // Bestaande DbSets
-        public DbSet<Patient> Patients { get; set; } = null!;
-
-        // **Nieuw: users voor login/authenticatie**
-        public DbSet<User> Users { get; set; } = null!;
+        public DbSet<User> Users => Set<User>();
+        public DbSet<Patient> Patients => Set<Patient>();
+        public DbSet<IntakeRecord> Intakes => Set<IntakeRecord>();
+        public DbSet<Exercise> Exercises => Set<Exercise>();
+        public DbSet<ExerciseAssignment> ExerciseAssignments => Set<ExerciseAssignment>();
+        public DbSet<PainEntry> PainEntries => Set<PainEntry>();
+        public DbSet<ActivityLogEntry> ActivityLogs => Set<ActivityLogEntry>();
+        public DbSet<Appointment> Appointments => Set<Appointment>();
+        public DbSet<InvoiceItem> InvoiceItems => Set<InvoiceItem>();
+        public DbSet<PatientNote> PatientNotes => Set<PatientNote>();
+        public DbSet<AccessoryAdvice> AccessoryAdvices => Set<AccessoryAdvice>();
+        public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
 
-            modelBuilder.Entity<Patient>(b =>
-            {
-                b.ToTable("Patients");
-                b.HasKey(p => p.Id);
-
-                b.Property(p => p.FirstName).IsRequired().HasMaxLength(100);
-                b.Property(p => p.LastName).IsRequired().HasMaxLength(100);
-                b.Property(p => p.StartDate).HasColumnType("date").IsRequired();
-                b.Property(p => p.Status).HasConversion<string>().IsRequired().HasMaxLength(20);
-                b.Property(p => p.CreatedAt).HasDefaultValueSql("SYSUTCDATETIME()");
-                b.Property(p => p.CreatedBy).IsRequired().HasMaxLength(100);
-
-                b.HasIndex(p => p.LastName).HasDatabaseName("IX_Patients_LastName");
-                b.HasIndex(p => new { p.Status, p.StartDate }).HasDatabaseName("IX_Patients_Status_StartDate");
-            });
-
-            // Mapping voor User
+            // User
             modelBuilder.Entity<User>(b =>
             {
-                b.ToTable("Users");
-                b.HasKey(u => u.UserId); // pas aan als jouw PK anders heet
-
-                b.Property(u => u.Username).IsRequired().HasMaxLength(100);
-                b.Property(u => u.PasswordHash).IsRequired().HasMaxLength(256);
+                b.HasIndex(u => u.Username).IsUnique();
                 b.Property(u => u.Role).HasMaxLength(50);
-                b.Property(u => u.DisplayName).HasMaxLength(200);
-
-                b.HasIndex(u => u.Username).IsUnique().HasDatabaseName("IX_Users_Username");
             });
-        }
 
-        // Audit / SaveChanges override (blijft zoals jij had)
-        public override int SaveChanges()
-        {
-            ApplyAuditInfo();
-            return base.SaveChanges();
-        }
-
-        public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
-        {
-            ApplyAuditInfo();
-            return base.SaveChangesAsync(cancellationToken);
-        }
-
-        private void ApplyAuditInfo()
-        {
-            var entries = ChangeTracker.Entries()
-                .Where(e => e.Entity is Patient && (e.State == EntityState.Added || e.State == EntityState.Modified));
-
-            foreach (var entry in entries)
+            // Patient
+            modelBuilder.Entity<Patient>(b =>
             {
-                var now = DateTime.UtcNow;
-                if (entry.State == EntityState.Added)
-                {
-                    ((Patient)entry.Entity).CreatedAt = now;
-                    ((Patient)entry.Entity).CreatedBy = ((Patient)entry.Entity).CreatedBy ?? "system";
-                }
-                else if (entry.State == EntityState.Modified)
-                {
-                    ((Patient)entry.Entity).ModifiedAt = now;
-                    ((Patient)entry.Entity).ModifiedBy = "system";
-                }
-            }
+                b.Property(p => p.Status).HasConversion<string>();
+                b.HasOne(p => p.AssignedDoctor)
+                    .WithMany(u => u.Patients)
+                    .HasForeignKey(p => p.AssignedDoctorUserId)
+                    .OnDelete(DeleteBehavior.Restrict);
+            });
+
+            // Intake (1-1)
+            modelBuilder.Entity<IntakeRecord>(b =>
+            {
+                b.HasOne(i => i.Patient)
+                    .WithOne(p => p.Intake)
+                    .HasForeignKey<IntakeRecord>(i => i.PatientId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            // ExerciseAssignment -> Exercise
+            modelBuilder.Entity<ExerciseAssignment>(b =>
+            {
+                b.HasOne(a => a.Exercise)
+                    .WithMany()
+                    .HasForeignKey(a => a.ExerciseId)
+                    .OnDelete(DeleteBehavior.Restrict);
+            });
+
+            // Enums as string
+            modelBuilder.Entity<Appointment>()
+                .Property(a => a.Status)
+                .HasConversion<string>();
+
+            modelBuilder.Entity<InvoiceItem>()
+                .Property(i => i.Status)
+                .HasConversion<string>();
         }
     }
 }

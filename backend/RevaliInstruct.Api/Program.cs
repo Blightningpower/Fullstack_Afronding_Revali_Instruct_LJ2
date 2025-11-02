@@ -1,39 +1,96 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.OpenApi.Models;
 using RevaliInstruct.Core.Data;
+using System.Security.Claims;
 using System.Text;
-
+using Microsoft.AspNetCore.Diagnostics;
 
 var builder = WebApplication.CreateBuilder(args);
 var MyAllowedOrigins = "_myAllowedOrigins";
 
+// Handmatige .env ondersteuning 
+var envFile = Path.Combine(Directory.GetCurrentDirectory(), ".env");
+if (File.Exists(envFile))
+{
+    foreach (var line in File.ReadAllLines(envFile))
+    {
+        if (string.IsNullOrWhiteSpace(line) || line.TrimStart().StartsWith("#")) continue;
+        var parts = line.Split('=', 2);
+        if (parts.Length == 2)
+        {
+            Environment.SetEnvironmentVariable(parts[0].Trim(), parts[1].Trim());
+        }
+    }
+}
+
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
 
-builder.Services.AddCors(options =>
+// Swagger met JWT Bearer support
+builder.Services.AddSwaggerGen(c =>
 {
-    options.AddPolicy(name: MyAllowedOrigins,
-        policy =>
+    var xml = $"{System.Reflection.Assembly.GetExecutingAssembly().GetName().Name}.xml";
+    var xmlPath = Path.Combine(AppContext.BaseDirectory, xml);
+    if (File.Exists(xmlPath))
+    {
+        c.IncludeXmlComments(xmlPath);
+    }
+
+    c.SwaggerDoc("v1", new OpenApiInfo { Title = "RevaliInstruct.Api", Version = "v1" });
+    c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+    {
+        Name = "Authorization",
+        Type = SecuritySchemeType.Http,
+        Scheme = "bearer",
+        BearerFormat = "JWT",
+        In = ParameterLocation.Header,
+        Description = "JWT Authorization header using Bearer scheme"
+    });
+    c.AddSecurityRequirement(new OpenApiSecurityRequirement
+    {
         {
-            policy.WithOrigins("http://localhost:5173") // Vite dev server
-                  .AllowAnyHeader()
-                  .AllowAnyMethod();
-        });
+            new OpenApiSecurityScheme
+            {
+                Reference = new OpenApiReference { Type = ReferenceType.SecurityScheme, Id = "Bearer" }
+            },
+            Array.Empty<string>()
+        }
+    });
 });
 
+// CORS policy voor Vite dev server
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy(name: MyAllowedOrigins, policy =>
+    {
+        policy.WithOrigins("http://localhost:5173")
+              .AllowAnyHeader()
+              .AllowAnyMethod()
+              .AllowCredentials();
+    });
+});
+
+// Configuratiebronnen laden (json + env vars na .env parsing)
+builder.Configuration
+    .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
+    .AddJsonFile("appsettings.Local.json", optional: true, reloadOnChange: true)
+    .AddEnvironmentVariables();
+
+// JWT authenticatie configuratie (na config load zodat .env/ENV werken)
 var secret = builder.Configuration["Jwt:Secret"] ?? builder.Configuration["JWT__Secret"];
+var authBuilder = builder.Services.AddAuthentication(options =>
+{
+    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+});
+
 if (!string.IsNullOrEmpty(secret))
 {
-    builder.Services.AddAuthentication(options =>
+    authBuilder.AddJwtBearer(options =>
     {
-        options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-        options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-    })
-    .AddJwtBearer(options =>
-    {
-        options.RequireHttpsMetadata = false; // dev only
+        options.RequireHttpsMetadata = false;
         options.SaveToken = true;
         options.TokenValidationParameters = new TokenValidationParameters
         {
@@ -45,14 +102,13 @@ if (!string.IsNullOrEmpty(secret))
         };
     });
 }
+else
+{
+    Console.WriteLine("JWT secret is leeg — JWT validatie wordt overgeslagen in deze sessie.");
+}
 
+// Database connectiestring samenstellen (fallback naar environment variabelen)
 var conn = builder.Configuration.GetConnectionString("DefaultConnection");
-
-builder.Configuration
-    .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
-    .AddJsonFile("appsettings.Local.json", optional: true, reloadOnChange: true)
-    .AddEnvironmentVariables();
-
 if (string.IsNullOrEmpty(conn))
 {
     var host = Environment.GetEnvironmentVariable("MSSQL_HOST") ?? "localhost";
@@ -60,7 +116,6 @@ if (string.IsNullOrEmpty(conn))
     var db = Environment.GetEnvironmentVariable("MSSQL_DATABASE") ?? "revali_db";
     var user = Environment.GetEnvironmentVariable("MSSQL_USER") ?? "revali_login";
     var pwd = Environment.GetEnvironmentVariable("MSSQL_PASSWORD") ?? "";
-
     conn = $"Server={host},{port};Database={db};User Id={user};Password={pwd};TrustServerCertificate=True;MultipleActiveResultSets=true;";
 }
 
@@ -69,83 +124,83 @@ Console.WriteLine($"DEBUG: DefaultConnection = {(string.IsNullOrEmpty(conn) ? "<
 if (!string.IsNullOrEmpty(conn))
 {
     builder.Services.AddDbContext<ApplicationDbContext>(options =>
-    options.UseSqlServer(conn, sqloptions => sqloptions.MigrationsAssembly("RevaliInstruct.Core"))
-);
+        options.UseSqlServer(conn, sqloptions => sqloptions.MigrationsAssembly("RevaliInstruct.Core"))
+               .EnableDetailedErrors()
+               .EnableSensitiveDataLogging(builder.Environment.IsDevelopment())
+    );
 }
 else
 {
-    Console.WriteLine("Geen DefaultConnection gevonden in appsettings.json");
+    Console.WriteLine("Geen DefaultConnection gevonden");
 }
 
 var app = builder.Build();
 
-// Wait-and-retry for DB, then migrate + seed
-using (var scope = app.Services.CreateScope())
-{
-    var services = scope.ServiceProvider;
-    var logger = services.GetRequiredService<ILogger<Program>>();
-    var db = services.GetRequiredService<ApplicationDbContext>();
-
-    var maxRetries = 10;
-    var delay = TimeSpan.FromSeconds(5);
-
-    for (int attempt = 1; attempt <= maxRetries; attempt++)
-    {
-        try
-        {
-            logger.LogInformation("Applying migrations (attempt {Attempt}/{Max})...", attempt, maxRetries);
-            db.Database.Migrate();
-
-            logger.LogInformation("Seeding database...");
-            await DbInitializer.SeedAsync(db);
-            logger.LogInformation("Seeding finished.");
-            break;
-        }
-        catch (Exception ex)
-        {
-            logger.LogWarning(ex, "Database not ready yet (attempt {Attempt}/{Max}). Waiting {Delay}s...", attempt, maxRetries, delay.TotalSeconds);
-            if (attempt == maxRetries) throw; // rethrow last exception
-            await Task.Delay(delay);
-            delay = delay + delay; // exponential-ish backoff
-        }
-    }
-}
-
+// Exception handling: gedetailleerd in Development, generiek in Production
 if (app.Environment.IsDevelopment())
 {
-    app.UseSwagger();
-    app.UseSwaggerUI();
+    app.UseDeveloperExceptionPage();
 }
-
-// --- Run migrations + seed bij opstart (veilig in try/catch met logging)
-using (var scope = app.Services.CreateScope())
+else
 {
-    var services = scope.ServiceProvider;
-    var logger = services.GetRequiredService<ILogger<Program>>();
-    try
+    app.UseExceptionHandler(errApp =>
     {
-        var db = services.GetRequiredService<ApplicationDbContext>();
-        // run migrations first
-        db.Database.Migrate();
-
-        // seed
-        await DbInitializer.SeedAsync(db);
-
-        logger.LogInformation("Migrations and seeding completed.");
-    }
-    catch (Exception ex)
-    {
-        logger.LogError(ex, "An error occurred while migrating or seeding the database.");
-        throw;
-    }
+        errApp.Run(async ctx =>
+        {
+            var feature = ctx.Features.Get<IExceptionHandlerFeature>();
+            var ex = feature?.Error;
+            var logger = ctx.RequestServices.GetRequiredService<ILogger<Program>>();
+            if (ex != null) logger.LogError(ex, "Unhandled exception");
+            ctx.Response.StatusCode = StatusCodes.Status500InternalServerError;
+            ctx.Response.ContentType = "application/json";
+            await ctx.Response.WriteAsJsonAsync(new { message = "Unexpected server error" });
+        });
+    });
 }
+
+app.UseSwagger();
+app.UseSwaggerUI(o =>
+{
+    o.SwaggerEndpoint("/swagger/v1/swagger.json", "RevaliInstruct.Api v1");
+    o.DocExpansion(Swashbuckle.AspNetCore.SwaggerUI.DocExpansion.None);
+});
 
 app.UseHttpsRedirection();
 app.UseRouting();
+app.UseCors(MyAllowedOrigins);
+app.UseAuthentication();
+
+// Zet SESSION_CONTEXT voor Row-Level Security (RLS)
+// Haalt UserId en IsAdmin uit JWT claims en schrijft naar SQL Server session
+app.Use(async (ctx, next) =>
+{
+    string? FindClaim(params string[] types) =>
+        types.Select(t => ctx.User.FindFirst(t)?.Value).FirstOrDefault(v => !string.IsNullOrWhiteSpace(v));
+
+    int userId = 0;
+    var uidStr = FindClaim(ClaimTypes.NameIdentifier, "sub", "uid", "UserId", "user_id");
+    if (!string.IsNullOrWhiteSpace(uidStr)) int.TryParse(uidStr, out userId);
+
+    bool isAdmin = ctx.User.IsInRole("Admin") ||
+        (FindClaim(ClaimTypes.Role, "role", "roles")?.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Any(r => string.Equals(r, "Admin", StringComparison.OrdinalIgnoreCase)) ?? false);
+
+    try
+    {
+        var db = ctx.RequestServices.GetRequiredService<ApplicationDbContext>();
+        await db.Database.ExecuteSqlRawAsync("EXEC sys.sp_set_session_context @key=N'UserId', @value={0};", userId);
+        await db.Database.ExecuteSqlRawAsync("EXEC sys.sp_set_session_context @key=N'IsAdmin', @value={0};", isAdmin ? "true" : "false");
+    }
+    catch (Exception ex)
+    {
+        var logger = ctx.RequestServices.GetRequiredService<ILogger<Program>>();
+        logger.LogWarning(ex, "SESSION_CONTEXT error");
+    }
+
+    await next();
+});
+
 app.UseAuthorization();
 app.MapControllers();
-app.UseCors(MyAllowedOrigins);
-app.Urls.Add("http://+:80");
-
-// gebruik RunAsync zodat top-level await werkt
+app.Urls.Add("http://localhost:5000");
 await app.RunAsync();

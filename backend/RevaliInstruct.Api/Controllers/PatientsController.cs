@@ -1,5 +1,7 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using RevaliInstruct.Api.Models;
 using RevaliInstruct.Core.Data;
 using RevaliInstruct.Core.Entities;
 
@@ -7,84 +9,82 @@ namespace RevaliInstruct.Api.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize]
     public class PatientsController : ControllerBase
     {
         private readonly ApplicationDbContext _db;
-
-        public PatientsController(ApplicationDbContext db)
-        {
-            _db = db;
-        }
+        public PatientsController(ApplicationDbContext db) => _db = db;
 
         [HttpGet]
-        public async Task<IActionResult> Get([FromQuery] string? q, [FromQuery] string? status,
-            [FromQuery] int page = 1, [FromQuery] int pageSize = 20, [FromQuery] string? sort = null)
+        public async Task<ActionResult<IEnumerable<PatientListDto>>> GetPatients([FromQuery] string? q, [FromQuery] string? status)
         {
-            page = Math.Max(page, 1);
-            pageSize = Math.Clamp(pageSize, 1, 100);
-
             var query = _db.Patients.AsNoTracking();
 
             if (!string.IsNullOrWhiteSpace(q))
             {
-                var qLower = q.Trim().ToLower();
-                query = query.Where(p => p.FirstName.ToLower().Contains(qLower) || p.LastName.ToLower().Contains(qLower));
+                var term = q.Trim();
+                query = query.Where(p => p.FirstName.Contains(term) || p.LastName.Contains(term));
             }
 
-            if (!string.IsNullOrWhiteSpace(status) && Enum.TryParse<PatientStatus>(status, true, out var st))
+            if (!string.IsNullOrWhiteSpace(status) && Enum.TryParse<PatientStatus>(status, ignoreCase: true, out var st))
             {
                 query = query.Where(p => p.Status == st);
             }
-            else if (!string.IsNullOrWhiteSpace(status))
-            {
-                return BadRequest("Unknown status value");
-            }
 
-            query = sort switch
-            {
-                "lastname" => query.OrderBy(p => p.LastName),
-                "startDate_desc" => query.OrderByDescending(p => p.StartDate),
-                _ => query.OrderBy(p => p.LastName)
-            };
-
-            var total = await query.CountAsync();
-            Response.Headers["X-Total-Count"] = total.ToString();
-
-            var items = await query
-                .Skip((page - 1) * pageSize)
-                .Take(pageSize)
+            var rows = await query
+                .OrderBy(p => p.LastName).ThenBy(p => p.FirstName)
                 .Select(p => new
                 {
                     p.Id,
                     p.FirstName,
                     p.LastName,
-                    StartDate = p.StartDate.ToString("yyyy-MM-dd"),
-                    Status = p.Status.ToString()
+                    p.StartDate,
+                    p.Status
                 })
                 .ToListAsync();
 
-            return Ok(new { data = items, page, pageSize });
+            var items = rows.Select(p => new PatientListDto
+            {
+                Id = p.Id,
+                FirstName = p.FirstName,
+                LastName = p.LastName,
+                StartDate = p.StartDate,
+                Status = p.Status.ToString()
+            }).ToList();
+
+            return Ok(items);
         }
 
         [HttpGet("{id:int}")]
-        public async Task<IActionResult> GetById(int id)
+        public async Task<IActionResult> GetPatient(int id)
         {
-            var p = await _db.Patients.AsNoTracking()
-                        .Where(x => x.Id == id)
-                        .Select(p => new
-                        {
-                            p.Id,
-                            p.FirstName,
-                            p.LastName,
-                            StartDate = p.StartDate.ToString("yyyy-MM-dd"),
-                            Status = p.Status.ToString(),
-                            p.Notes // of andere velden die je wil tonen
-                        })
-                        .SingleOrDefaultAsync();
+            var row = await _db.Patients
+                .AsNoTracking()
+                .Where(x => x.Id == id)
+                .Select(x => new
+                {
+                    x.Id,
+                    x.FirstName,
+                    x.LastName,
+                    x.DateOfBirth,
+                    x.StartDate,
+                    x.Status,
+                    x.Notes
+                })
+                .FirstOrDefaultAsync();
 
-            if (p == null) return NotFound();
-            return Ok(p);
+            if (row == null) return NotFound();
+
+            return Ok(new
+            {
+                row.Id,
+                row.FirstName,
+                row.LastName,
+                row.DateOfBirth,
+                row.StartDate,
+                Status = row.Status.ToString(),
+                row.Notes
+            });
         }
-
     }
 }

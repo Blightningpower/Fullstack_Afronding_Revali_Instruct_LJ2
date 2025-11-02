@@ -2,14 +2,13 @@ namespace RevaliInstruct.Core.Entities
 {
     public class User
     {
-        public int UserId { get; set; }   
-        public string Username { get; set; } = null!;
-        public string PasswordHash { get; set; } = null!;
-        public string? Role { get; set; }
-        public string? DisplayName { get; set; }
+        public int Id { get; set; }
+        public string Username { get; set; } = string.Empty;
+        public string PasswordHash { get; set; } = string.Empty;
+        public string Role { get; set; } = "User";
+        public string? FullName { get; set; }
+        public string? Email { get; set; }
 
-        // audit velden
-        public DateTime CreatedAt { get; set; }
-        public string? CreatedBy { get; set; }
+        public ICollection<Patient> Patients { get; set; } = new List<Patient>();
     }
 }

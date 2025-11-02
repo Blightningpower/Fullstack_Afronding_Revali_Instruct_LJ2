@@ -2,15 +2,15 @@
 -- Run als sysadmin (sa). Maakt DB en tabellen aan als ze nog niet bestaan.
 
 SET NOCOUNT ON;
--- 1) Maak database aan als die niet bestaat
+
 IF DB_ID(N'revali_db') IS NULL
 BEGIN
-    PRINT N'Creating database revali_db...';
+    PRINT 'Creating database [revali_db]...';
     CREATE DATABASE [revali_db];
-    PRINT N'revali_db aangemaakt.';
 END
-ELSE
-    PRINT N'revali_db bestaat al.';
+GO
+
+PRINT 'mssql_init.sql done.';
 
 -- 2) Schakel naar de database
 USE [revali_db];
@@ -220,4 +220,16 @@ SELECT TABLE_SCHEMA, TABLE_NAME
 FROM INFORMATION_SCHEMA.TABLES
 WHERE TABLE_TYPE = 'BASE TABLE'
 ORDER BY TABLE_SCHEMA, TABLE_NAME;
+GO
+
+-- Voeg kolom toe als deze ontbreekt (NULL toegestaan zodat bestaande data niet breekt)
+IF NOT EXISTS (
+    SELECT 1 FROM sys.columns
+    WHERE object_id = OBJECT_ID(N'dbo.Patients') AND name = N'AssignedDoctorUserId'
+)
+BEGIN
+    PRINT 'Adding column Patients.AssignedDoctorUserId...';
+    ALTER TABLE dbo.Patients ADD AssignedDoctorUserId INT NULL;
+    CREATE INDEX IX_Patients_AssignedDoctorUserId ON dbo.Patients(AssignedDoctorUserId);
+END
 GO

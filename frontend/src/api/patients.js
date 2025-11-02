@@ -1,3 +1,5 @@
+import api from '../services/api';
+
 const base = '/api/patients';
 
 export async function fetchPatients({ q, status, page = 1, pageSize = 20, sort } = {}) {
@@ -20,4 +22,14 @@ export async function fetchPatient(id) {
     throw new Error(`API error ${res.status}`);
   }
   return res.json();
+}
+
+export const getPatients = async (params) => {
+  const response = await api.get('/patients', { params })
+  return response.data
+}
+
+export const getPatientById = async (id) => {
+  const response = await api.get(`/patients/${id}`)
+  return response.data
 }
