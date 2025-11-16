@@ -25,7 +25,8 @@ if (File.Exists(envFile))
     }
 }
 
-builder.Services.AddControllers();
+// Add services to the container.
+builder.Services.AddControllers(); // <- zorg dat controllers geregistreerd zijn
 builder.Services.AddEndpointsApiExplorer();
 
 // Swagger met JWT Bearer support
@@ -98,7 +99,62 @@ if (!string.IsNullOrEmpty(secret))
             ValidateAudience = false,
             ValidateIssuerSigningKey = true,
             IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secret)),
-            ClockSkew = TimeSpan.FromSeconds(30)
+            ClockSkew = TimeSpan.FromSeconds(30),
+
+            // Zorg dat role/name claims correct gemapt worden
+            NameClaimType = System.Security.Claims.ClaimTypes.NameIdentifier,
+            RoleClaimType = System.Security.Claims.ClaimTypes.Role
+        };
+
+        // Logging / debugging hooks zodat je ziet waarom authenticatie faalt
+        options.Events = new Microsoft.AspNetCore.Authentication.JwtBearer.JwtBearerEvents
+        {
+            OnMessageReceived = ctx =>
+            {
+                try
+                {
+                    // controleer zowel 'Authorization' als lowercase 'authorization'
+                    var hdr = ctx.Request.Headers["Authorization"].FirstOrDefault()
+                              ?? ctx.Request.Headers["authorization"].FirstOrDefault();
+
+                    // ook probeer access_token query fallback (bijv. signalr / testing)
+                    if (string.IsNullOrWhiteSpace(hdr))
+                    {
+                        var q = ctx.Request.Query["access_token"].FirstOrDefault();
+                        if (!string.IsNullOrWhiteSpace(q))
+                        {
+                            Console.WriteLine("JwtBearer OnMessageReceived: found token in query string");
+                            ctx.Token = q;
+                            return Task.CompletedTask;
+                        }
+                    }
+                    else
+                    {
+                        Console.WriteLine($"JwtBearer OnMessageReceived Authorization header: {hdr}");
+                        if (hdr.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
+                        {
+                            ctx.Token = hdr.Substring("Bearer ".Length).Trim();
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine("OnMessageReceived error: " + ex.Message);
+                }
+                return Task.CompletedTask;
+            },
+            OnTokenValidated = ctx =>
+            {
+                var id = ctx.Principal?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+                var role = ctx.Principal?.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value;
+                Console.WriteLine($"JwtBearer token validated. NameId={id ?? "<null>"} Role={role ?? "<null>"}");
+                return Task.CompletedTask;
+            },
+            OnAuthenticationFailed = ctx =>
+            {
+                Console.WriteLine("JwtBearer authentication failed: " + ctx.Exception?.Message);
+                return Task.CompletedTask;
+            }
         };
     });
 }
@@ -136,6 +192,33 @@ else
 
 var app = builder.Build();
 
+// Optional automatic reset on startup (set env var RESET_DB=1)
+if (Environment.GetEnvironmentVariable("RESET_DB") == "1")
+{
+    using var scope = app.Services.CreateScope();
+    var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+    await DbInitializer.ResetAndSeedAsync(db);
+    Console.WriteLine("Database reset (RESET_DB=1).");
+}
+
+// START: ensure seeding runs automatically in Development so deleted users get re-seeded
+if (app.Environment.IsDevelopment())
+{
+    try
+    {
+        using var seedScope = app.Services.CreateScope();
+        var db = seedScope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        await DbInitializer.SeedAsync(db);
+        Console.WriteLine("DbInitializer.SeedAsync executed at startup (development).");
+    }
+    catch (Exception ex)
+    {
+        var logger = app.Services.GetRequiredService<ILogger<Program>>();
+        logger.LogWarning(ex, "Automatic seeding on startup failed.");
+    }
+}
+// END: automatic dev seeding
+
 // Exception handling: gedetailleerd in Development, generiek in Production
 if (app.Environment.IsDevelopment())
 {
@@ -158,17 +241,23 @@ else
     });
 }
 
-app.UseSwagger();
-app.UseSwaggerUI(o =>
+if (app.Environment.IsDevelopment())
 {
-    o.SwaggerEndpoint("/swagger/v1/swagger.json", "RevaliInstruct.Api v1");
-    o.DocExpansion(Swashbuckle.AspNetCore.SwaggerUI.DocExpansion.None);
-});
+    app.UseSwagger();
+    app.UseSwaggerUI();
+}
 
-app.UseHttpsRedirection();
+// Zorg voor juiste volgorde van middleware
 app.UseRouting();
+
+// <-- voeg CORS middleware toe vóór authentication
 app.UseCors(MyAllowedOrigins);
+
 app.UseAuthentication();
+app.UseAuthorization();
+
+// Map attribute routed controllers
+app.MapControllers();
 
 // Zet SESSION_CONTEXT voor Row-Level Security (RLS)
 // Haalt UserId en IsAdmin uit JWT claims en schrijft naar SQL Server session
@@ -200,14 +289,29 @@ app.Use(async (ctx, next) =>
     await next();
 });
 
-app.UseAuthorization();
-
 // Voeg dossier endpoint toe (US2: Patiëntendossier Inzien)
 // 1 handler, 2 routes (/api/... en legacy zonder prefix)
-async Task<IResult> DossierHandler(int id, ApplicationDbContext db, CancellationToken ct)
+async Task<IResult> DossierHandler(int id, ApplicationDbContext db, HttpContext ctx, CancellationToken ct)
 {
+    // Haal UserId en Role uit JWT claims
+    var userIdClaim = ctx.User.FindFirst(ClaimTypes.NameIdentifier)?.Value
+                   ?? ctx.User.FindFirst("sub")?.Value;
+
+    if (!int.TryParse(userIdClaim, out var userId))
+        return Results.Unauthorized();
+
+    var isAdmin = ctx.User.IsInRole("Admin");
+    var isDoctor = isAdmin || ctx.User.IsInRole("Doctor");
+    if (!isDoctor) return Results.Forbid();
+
     var p = await db.Patients.AsNoTracking().FirstOrDefaultAsync(x => x.Id == id, ct);
     if (p is null) return Results.NotFound(new { message = "Patient not found" });
+
+    if (!isAdmin)
+    {
+        var assignedDocId = EF.Property<int?>(p, "AssignedDoctorUserId");
+        if (assignedDocId != userId) return Results.Forbid();
+    }
 
     var patient = new BasicPatientDto
     {
@@ -222,7 +326,6 @@ async Task<IResult> DossierHandler(int id, ApplicationDbContext db, Cancellation
         Status = p.Status.ToString()
     };
 
-    // Demo/fallback invulling voor contactgegevens
     var r = new Random(id);
     string safeLast = (patient.LastName ?? "").Replace(" ", "").ToLowerInvariant();
     if (string.IsNullOrWhiteSpace(patient.Email) && !string.IsNullOrWhiteSpace(patient.FirstName) && !string.IsNullOrWhiteSpace(patient.LastName))
@@ -232,7 +335,6 @@ async Task<IResult> DossierHandler(int id, ApplicationDbContext db, Cancellation
     if (string.IsNullOrWhiteSpace(patient.ReferringDoctor))
         patient.ReferringDoctor = $"Huisarts {Convert.ToChar('A' + r.Next(0, 26))}";
 
-    // Exercises
     var exerciseNames = new[] { "Kniebuiging", "Schouder abductie", "Heuplift", "Enkel cirkels", "Quadriceps stretch", "Hamstring stretch", "Core stabiliteit" };
     var exercises = Enumerable.Range(1, r.Next(3, 6))
         .Select(i => new ExerciseDto
@@ -243,7 +345,6 @@ async Task<IResult> DossierHandler(int id, ApplicationDbContext db, Cancellation
         })
         .ToArray();
 
-    // Pain timeline (laatste 14 dagen)
     var pains = Enumerable.Range(0, 14)
         .Select(d => new PainEntryDto
         {
@@ -254,7 +355,6 @@ async Task<IResult> DossierHandler(int id, ApplicationDbContext db, Cancellation
         .OrderBy(x => x.Date)
         .ToArray();
 
-    // Activities (laatste week)
     var activityNames = new[] { "Wandelen", "Fietsen", "Huishoudelijk werk", "Zwemmen", "Krachttraining" };
     var activities = Enumerable.Range(0, r.Next(2, 5))
         .Select(i => new ActivityLogDto
@@ -266,7 +366,6 @@ async Task<IResult> DossierHandler(int id, ApplicationDbContext db, Cancellation
         .OrderByDescending(x => x.Date)
         .ToArray();
 
-    // Medications
     var medCatalog = new (string name, string dose)[] {
         ("Paracetamol", "500 mg 1-3x/dag"),
         ("Ibuprofen", "400 mg 1-2x/dag"),
@@ -279,7 +378,6 @@ async Task<IResult> DossierHandler(int id, ApplicationDbContext db, Cancellation
         })
         .ToArray();
 
-    // Accessories
     var accCatalog = new[] { "Elastische band (medium)", "Kniebrace", "Enkelbandage", "Schouderband" };
     var accessories = Enumerable.Range(0, r.Next(0, 3))
         .Select(_ => new AccessoryDto
@@ -289,7 +387,6 @@ async Task<IResult> DossierHandler(int id, ApplicationDbContext db, Cancellation
         })
         .ToArray();
 
-    // Appointments (2 verleden, 1 toekomst)
     var apptTypes = new[] { "Intake", "Controle", "Evaluatie" };
     var appointments = new[]
     {
@@ -314,10 +411,18 @@ async Task<IResult> DossierHandler(int id, ApplicationDbContext db, Cancellation
 
 app.MapGet("/api/patients/{id:int}/dossier", DossierHandler);
 app.MapGet("/patients/{id:int}/dossier", DossierHandler);
+app.MapGet("/api/dossier/{id:int}", DossierHandler);
 
-app.MapControllers();
-app.Urls.Add("http://localhost:5000");
-await app.RunAsync();
+// Dev endpoint to reset and reseed manually
+app.MapPost("/api/dev/reset-db", async (IServiceProvider sp) =>
+{
+    using var scope = sp.CreateScope();
+    var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+    await DbInitializer.ResetAndSeedAsync(db);
+    return Results.Ok(new { reset = true });
+});
+
+app.Run();
 
 #region DTOs voor dossier (US2)
 internal sealed class PatientsListItemDto
@@ -357,13 +462,13 @@ internal sealed class ExerciseDto
 {
     public int Id { get; set; }
     public string? Name { get; set; }
-    public string? Status { get; set; } // bv. 'Toegewezen', 'Afgevinkt'
+    public string? Status { get; set; }
 }
 
 internal sealed class PainEntryDto
 {
     public DateTime Date { get; set; }
-    public int Level { get; set; } // 0-10
+    public int Level { get; set; }
     public string? Note { get; set; }
 }
 
@@ -389,7 +494,7 @@ internal sealed class AccessoryDto
 internal sealed class AppointmentDto
 {
     public DateTime Date { get; set; }
-    public string? Type { get; set; } // bv. intake, controle
-    public string? Status { get; set; } // gepland/afgerond
+    public string? Type { get; set; }
+    public string? Status { get; set; }
 }
 #endregion
