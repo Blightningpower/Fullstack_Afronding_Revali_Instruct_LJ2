@@ -1,7 +1,5 @@
-using System.Globalization;
 using Microsoft.EntityFrameworkCore;
 using RevaliInstruct.Core.Entities;
-using Microsoft.Data.SqlClient;
 
 namespace RevaliInstruct.Core.Data
 {
@@ -161,6 +159,7 @@ END;
                         LastName = "Jansen",
                         DateOfBirth = new DateTime(1980, 5, 15),
                         Diagnosis = "Kruisbandblessure",
+                        StartDate = DateTime.Now,
                         Status = PatientStatus.IntakePlanned,
                         AssignedDoctorUserId = doctorId
                     };
@@ -170,6 +169,7 @@ END;
                         LastName = "Bakker",
                         DateOfBirth = new DateTime(1965, 8, 22),
                         Diagnosis = "Heupoperatie",
+                        StartDate = DateTime.Now,
                         Status = PatientStatus.Active,
                         AssignedDoctorUserId = doctorId
                     };
@@ -178,21 +178,22 @@ END;
                     var existingCols = await GetTableColumnsAsync(context, "Patients");
 
                     // Als tabel alleen de minimale kolommen heeft zoals in je screenshot:
-                    // Id, FirstName, LastName, DateOfBirth, Notes, CreatedAt
-                    var minimalCols = new[] { "FirstName", "LastName", "DateOfBirth", "Notes", "CreatedAt" };
+                    // Id, FirstName, LastName, DateOfBirth, Notes, CreatedAt, StartDate, AssignedDoctorUserId
+                    // we prefer to also set AssignedDoctorUserId so seeded patients are visible to the seeded doctor
+                    var minimalCols = new[] { "FirstName", "LastName", "DateOfBirth", "Notes", "CreatedAt", "StartDate", "AssignedDoctorUserId" };
                     if (minimalCols.All(c => existingCols.Contains(c, StringComparer.OrdinalIgnoreCase)))
                     {
                         // Gebruik eenvoudige, expliciete fallback-insert voor precies die kolommen
                         var sql = @"
 IF NOT EXISTS(SELECT 1 FROM dbo.Patients WHERE FirstName = @fn0 AND LastName = @ln0 AND DateOfBirth = @dob0)
 BEGIN
-    INSERT INTO dbo.Patients (FirstName, LastName, DateOfBirth, Notes, CreatedAt)
-    VALUES (@fn0, @ln0, @dob0, @notes0, SYSUTCDATETIME());
+    INSERT INTO dbo.Patients (FirstName, LastName, DateOfBirth, Notes, CreatedAt, StartDate, AssignedDoctorUserId)
+    VALUES (@fn0, @ln0, @dob0, @notes0, SYSUTCDATETIME(), @start0, @doc0);
 END;
 IF NOT EXISTS(SELECT 1 FROM dbo.Patients WHERE FirstName = @fn1 AND LastName = @ln1 AND DateOfBirth = @dob1)
 BEGIN
-    INSERT INTO dbo.Patients (FirstName, LastName, DateOfBirth, Notes, CreatedAt)
-    VALUES (@fn1, @ln1, @dob1, @notes1, SYSUTCDATETIME());
+    INSERT INTO dbo.Patients (FirstName, LastName, DateOfBirth, Notes, CreatedAt, StartDate, AssignedDoctorUserId)
+    VALUES (@fn1, @ln1, @dob1, @notes1, SYSUTCDATETIME(), @start1, @doc1);
 END;
 ";
                         var parameters = new[]
@@ -201,11 +202,16 @@ END;
                             new Microsoft.Data.SqlClient.SqlParameter("@ln0", p1.LastName ?? (object)DBNull.Value),
                             new Microsoft.Data.SqlClient.SqlParameter("@dob0", p1.DateOfBirth),
                             new Microsoft.Data.SqlClient.SqlParameter("@notes0", DBNull.Value),
+                            new Microsoft.Data.SqlClient.SqlParameter("@start0", DBNull.Value),
+                            // assign doctor id (use the seeded doctorId if available)
+                            new Microsoft.Data.SqlClient.SqlParameter("@doc0", p1.AssignedDoctorUserId != 0 ? (object)p1.AssignedDoctorUserId : (doctorId != 0 ? (object)doctorId : (object)DBNull.Value)),
 
                             new Microsoft.Data.SqlClient.SqlParameter("@fn1", p2.FirstName ?? (object)DBNull.Value),
                             new Microsoft.Data.SqlClient.SqlParameter("@ln1", p2.LastName ?? (object)DBNull.Value),
                             new Microsoft.Data.SqlClient.SqlParameter("@dob1", p2.DateOfBirth),
-                            new Microsoft.Data.SqlClient.SqlParameter("@notes1", DBNull.Value)
+                            new Microsoft.Data.SqlClient.SqlParameter("@notes1", DBNull.Value),
+                            new Microsoft.Data.SqlClient.SqlParameter("@start1", p2.StartDate == DateTime.MinValue ? (object)DBNull.Value : p2.StartDate),
+                            new Microsoft.Data.SqlClient.SqlParameter("@doc1", p2.AssignedDoctorUserId != 0 ? (object)p2.AssignedDoctorUserId : (doctorId != 0 ? (object)doctorId : (object)DBNull.Value))
                         };
 
                         await context.Database.ExecuteSqlRawAsync(sql, parameters);

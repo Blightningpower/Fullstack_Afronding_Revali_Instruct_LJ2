@@ -192,6 +192,27 @@ else
 
 var app = builder.Build();
 
+// unieke server instance id om restarts te detecteren (verandert bij elke run)
+var serverInstanceId = Guid.NewGuid().ToString();
+Console.WriteLine($"Server instance id: {serverInstanceId}");
+
+// Middleware om X-Server-Instance header toe te voegen aan alle responses
+app.Use(async (ctx, next) =>
+{
+    ctx.Response.OnStarting(() =>
+    {
+        // vervang Dictionary.Add (kan exception geven bij duplicate keys) door indexer/Append
+        ctx.Response.Headers["X-Server-Instance"] = serverInstanceId;
+
+        // Expose-header: gebruik Append zodat we veilig meerdere waarden kunnen hebben zonder Add-exceptie
+        ctx.Response.Headers.Append("Access-Control-Expose-Headers", "X-Server-Instance");
+
+        return Task.CompletedTask;
+    });
+
+    await next();
+});
+
 // Optional automatic reset on startup (set env var RESET_DB=1)
 if (Environment.GetEnvironmentVariable("RESET_DB") == "1")
 {
@@ -412,6 +433,9 @@ async Task<IResult> DossierHandler(int id, ApplicationDbContext db, HttpContext 
 app.MapGet("/api/patients/{id:int}/dossier", DossierHandler);
 app.MapGet("/patients/{id:int}/dossier", DossierHandler);
 app.MapGet("/api/dossier/{id:int}", DossierHandler);
+
+// Simpel endpoint dat de huidige server-instance teruggeeft (kan door frontend zonder auth aangeroepen worden)
+app.MapGet("/api/instance", () => Results.Ok(new { instance = serverInstanceId }));
 
 // Dev endpoint to reset and reseed manually
 app.MapPost("/api/dev/reset-db", async (IServiceProvider sp) =>

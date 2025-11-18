@@ -6,7 +6,7 @@ import PatientDetail from '../pages/PatientDetail.vue'
 const routes = [
   { path: '/login', name: 'Login', component: Login },
   { path: '/patients', name: 'Patients', component: PatientsList, meta: { requiresAuth: true } },
-  { path: '/patients/:id', component: PatientDetail, props: true }
+  { path: '/patients/:id', component: PatientDetail, props: true, meta: { requiresAuth: true } }
 ]
 
 const router = createRouter({
