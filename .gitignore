@@ -60,9 +60,6 @@ docker-compose.yml.bak
 coverage/
 *.sqlite3
 
-# Lokale settings (niet committen)
-appsettings.Local.json
-
 # .NET build
 **/bin/
 **/obj/

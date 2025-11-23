@@ -35,7 +35,7 @@ namespace RevaliInstruct.Core.Data
             // Patient
             modelBuilder.Entity<Patient>(b =>
             {
-                b.Property(p => p.Status).HasConversion<string>();
+                // Status: laat de enum gewoon als int opslaan (standaard gedrag)
                 b.HasOne(p => p.AssignedDoctor)
                     .WithMany(u => u.Patients)
                     .HasForeignKey(p => p.AssignedDoctorUserId)
@@ -60,7 +60,7 @@ namespace RevaliInstruct.Core.Data
                     .OnDelete(DeleteBehavior.Restrict);
             });
 
-            // Enums as string
+            // Enums as string voor andere entiteiten (dit botst niet met je huidige DB)
             modelBuilder.Entity<Appointment>()
                 .Property(a => a.Status)
                 .HasConversion<string>();
@@ -68,27 +68,6 @@ namespace RevaliInstruct.Core.Data
             modelBuilder.Entity<InvoiceItem>()
                 .Property(i => i.Status)
                 .HasConversion<string>();
-
-            // Map PatientStatus enum to Dutch database strings
-            // modelBuilder.Entity<Patient>()
-            //     .Property(p => p.Status)
-            //     .HasConversion(
-            //         v => v switch
-            //         {
-            //             PatientStatus.IntakePlanned => "Intake gepland",
-            //             PatientStatus.Active => "Actief",
-            //             PatientStatus.Completed => "Afgerond",
-            //             PatientStatus.OnHold => "On hold",
-            //             _ => "Actief"
-            //         },
-            //         v => v switch
-            //         {
-            //             "Intake gepland" => PatientStatus.IntakePlanned,
-            //             "Actief" => PatientStatus.Active,
-            //             "Afgerond" => PatientStatus.Completed,
-            //             "On hold" => PatientStatus.OnHold,
-            //             _ => PatientStatus.Active
-            //         });
         }
     }
 }

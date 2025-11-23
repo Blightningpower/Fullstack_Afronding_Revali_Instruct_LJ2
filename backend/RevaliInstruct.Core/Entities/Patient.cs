@@ -1,5 +1,3 @@
-using System;
-
 namespace RevaliInstruct.Core.Entities
 {
     public class Patient
@@ -24,7 +22,9 @@ namespace RevaliInstruct.Core.Entities
         public ICollection<PatientNote> PatientNotes { get; set; } = new List<PatientNote>();
         public ICollection<AccessoryAdvice> AccessoryAdvices { get; set; } = new List<AccessoryAdvice>();
 
-        public DateTime StartDate { get; set; } = DateTime.Now;
+        // Let op: we gebruiken DateTime.MinValue als "geen startdatum bekend".
+        // In de controller vertalen we MinValue naar null voor de frontend.
+        public DateTime StartDate { get; set; } = DateTime.MinValue;
     }
 
     public class IntakeRecord
@@ -87,6 +87,7 @@ namespace RevaliInstruct.Core.Entities
     }
 
     public enum AppointmentStatus { Planned, Completed, Cancelled }
+
     public class Appointment
     {
         public int Id { get; set; }
@@ -101,6 +102,7 @@ namespace RevaliInstruct.Core.Entities
     }
 
     public enum ClaimStatus { Pending, Declared }
+
     public class InvoiceItem
     {
         public int Id { get; set; }

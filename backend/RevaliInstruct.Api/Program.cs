@@ -76,7 +76,8 @@ builder.Services.AddCors(options =>
 // Configuratiebronnen laden (json + env vars na .env parsing)
 builder.Configuration
     .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
-    .AddJsonFile("appsettings.Local.json", optional: true, reloadOnChange: true)
+    .AddJsonFile($"appsettings.{builder.Environment.EnvironmentName}.json",
+                 optional: true, reloadOnChange: true)
     .AddEnvironmentVariables();
 
 // JWT authenticatie configuratie (na config load zodat .env/ENV werken)
@@ -180,7 +181,7 @@ Console.WriteLine($"DEBUG: DefaultConnection = {(string.IsNullOrEmpty(conn) ? "<
 if (!string.IsNullOrEmpty(conn))
 {
     builder.Services.AddDbContext<ApplicationDbContext>(options =>
-        options.UseSqlServer(conn, sqloptions => sqloptions.MigrationsAssembly("RevaliInstruct.Core"))
+        options.UseSqlServer(conn)
                .EnableDetailedErrors()
                .EnableSensitiveDataLogging(builder.Environment.IsDevelopment())
     );
@@ -277,9 +278,6 @@ app.UseCors(MyAllowedOrigins);
 app.UseAuthentication();
 app.UseAuthorization();
 
-// Map attribute routed controllers
-app.MapControllers();
-
 // Zet SESSION_CONTEXT voor Row-Level Security (RLS)
 // Haalt UserId en IsAdmin uit JWT claims en schrijft naar SQL Server session
 app.Use(async (ctx, next) =>
@@ -309,6 +307,9 @@ app.Use(async (ctx, next) =>
 
     await next();
 });
+
+// Map attribute routed controllers
+app.MapControllers();
 
 // Voeg dossier endpoint toe (US2: Patiëntendossier Inzien)
 // 1 handler, 2 routes (/api/... en legacy zonder prefix)

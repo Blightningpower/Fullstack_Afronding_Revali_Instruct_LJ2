@@ -1,16 +1,11 @@
-using System;
-using System.Data.Common;
 using System.IdentityModel.Tokens.Jwt;
-using System.Linq;
 using System.Security.Claims;
 using System.Text;
-using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.EntityFrameworkCore;
 using RevaliInstruct.Core.Data;
 using RevaliInstruct.Core.Entities;
-using Microsoft.EntityFrameworkCore;
 
 namespace RevaliInstruct.Api.Controllers
 {
@@ -36,103 +31,26 @@ namespace RevaliInstruct.Api.Controllers
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
 
-            // --- replaced EF lookup with safe direct DB query to avoid schema-mismatch errors ---
-            User? user = null;
-            var conn = _context.Database.GetDbConnection();
-            try
-            {
-                if (conn.State != System.Data.ConnectionState.Open)
-                    await conn.OpenAsync();
+            // 1. User ophalen via EF (geen custom SQL meer)
+            var user = await _context.Users
+                .SingleOrDefaultAsync(u => u.Username == req.Username);
 
-                // Stap 1: haal basisvelden op (Id, Username, PasswordHash, Role)
-                using var cmd = conn.CreateCommand();
-                cmd.CommandText = @"SELECT TOP(1) [Id], [Username], [PasswordHash], [Role]
-                                    FROM dbo.Users
-                                    WHERE [Username] = @u";
-                var p = cmd.CreateParameter();
-                p.ParameterName = "@u";
-                p.Value = req.Username ?? (object)DBNull.Value;
-                cmd.Parameters.Add(p);
-
-                int id;
-                string? username;
-                string? passwordHash;
-                string? role;
-
-                using (var reader = await cmd.ExecuteReaderAsync())
-                {
-                    if (!await reader.ReadAsync())
-                        return Unauthorized(new { error = "invalid credentials" });
-
-                    id = reader.IsDBNull(0) ? 0 : reader.GetInt32(0);
-                    username = reader.IsDBNull(1) ? null : reader.GetString(1);
-                    passwordHash = reader.IsDBNull(2) ? null : reader.GetString(2);
-                    role = reader.IsDBNull(3) ? null : reader.GetString(3);
-                }
-
-                // Stap 2 (optioneel): controleer of kolom DisplayName bestaat en lees deze indien aanwezig
-                string? displayName = null;
-                using (var colCmd = conn.CreateCommand())
-                {
-                    colCmd.CommandText = @"
-SELECT CASE WHEN EXISTS(
-    SELECT 1 FROM sys.columns
-    WHERE object_id = OBJECT_ID('dbo.Users') AND name = @colName
-) THEN 1 ELSE 0 END";
-                    var cp = colCmd.CreateParameter();
-                    cp.ParameterName = "@colName";
-                    cp.Value = "DisplayName";
-                    colCmd.Parameters.Add(cp);
-
-                    var exists = (int?)await colCmd.ExecuteScalarAsync();
-                    if (exists == 1)
-                    {
-                        using var dnCmd = conn.CreateCommand();
-                        dnCmd.CommandText = "SELECT TOP(1) [DisplayName] FROM dbo.Users WHERE [Id] = @id";
-                        var ip = dnCmd.CreateParameter();
-                        ip.ParameterName = "@id";
-                        ip.Value = id;
-                        dnCmd.Parameters.Add(ip);
-
-                        var val = await dnCmd.ExecuteScalarAsync();
-                        if (val != null && val != DBNull.Value) displayName = val.ToString();
-                    }
-                }
-
-                user = new User
-                {
-                    Id = id,
-                    Username = username ?? req.Username!,
-                    PasswordHash = passwordHash ?? string.Empty,
-                    Role = role ?? string.Empty,
-                    FullName = displayName
-                };
-            }
-            finally
-            {
-                try { await conn.CloseAsync(); } catch { }
-            }
-            // --- end replaced lookup ---
+            if (user == null)
+                return Unauthorized(new { error = "invalid credentials" });
 
             if (string.IsNullOrEmpty(req.Password) || string.IsNullOrEmpty(user.PasswordHash))
                 return Unauthorized(new { error = "invalid credentials" });
 
-            // Probeer BCrypt eerst
+            // 2. Wachtwoord checken (BCrypt)
             if (!BCrypt.Net.BCrypt.Verify(req.Password, user.PasswordHash))
             {
-                // Fallback: plaintext -> convert (dev convenience)
+                // Optioneel: plaintext → hash bij eerste login
+                // (laat dit desnoods helemaal weg als je alle users al gehashte passwords geeft)
                 if (user.PasswordHash == req.Password)
                 {
                     user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(req.Password);
-                    try
-                    {
-                        _context.Users.Update(user);
-                        await _context.SaveChangesAsync();
-                    }
-                    catch
-                    {
-                        // ignore update errors (schema may not match)
-                    }
+                    _context.Users.Update(user);
+                    await _context.SaveChangesAsync();
                 }
                 else
                 {
@@ -140,6 +58,7 @@ SELECT CASE WHEN EXISTS(
                 }
             }
 
+            // 3. JWT token genereren
             var (token, expires, error) = GenerateJwtToken(user);
             if (token == null)
             {
@@ -151,13 +70,11 @@ SELECT CASE WHEN EXISTS(
 
         private (string? token, DateTime expiresUtc, string? error) GenerateJwtToken(User user)
         {
-            // probeer meerdere mogelijke configuratie-keys/env-vars als fallback
+            // Je kunt dit eventueel beperken tot alleen "Jwt:Key" als je wilt
             var key = _config["Jwt:Key"]
                       ?? _config["Jwt:Secret"]
                       ?? _config["JWT__Secret"]
-                      ?? _config["JWT:Secret"]
-                      ?? Environment.GetEnvironmentVariable("JWT_SECRET")
-                      ?? Environment.GetEnvironmentVariable("JWT__Secret");
+                      ?? Environment.GetEnvironmentVariable("JWT_SECRET");
 
             var issuer = _config["Jwt:Issuer"];
             var audience = _config["Jwt:Audience"];
@@ -196,7 +113,6 @@ SELECT CASE WHEN EXISTS(
 
     public class LoginRequest
     {
-        // Mark properties nullable to avoid CS8618 and add Required for validation
         [System.ComponentModel.DataAnnotations.Required]
         public string? Username { get; set; }
 
