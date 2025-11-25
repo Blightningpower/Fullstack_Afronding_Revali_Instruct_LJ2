@@ -4,19 +4,22 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using RevaliInstruct.Core.Data;
 using RevaliInstruct.Core.Entities;
+using Microsoft.Extensions.Logging;
 
 namespace RevaliInstruct.Api.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    [Authorize]
+    [Authorize(Roles = "Doctor,Admin")]
     public class PatientsController : ControllerBase
     {
-        private readonly ApplicationDbContext _db;
+        private readonly ApplicationDbContext _context;
+        private readonly ILogger<PatientsController> _logger;
 
-        public PatientsController(ApplicationDbContext db)
+        public PatientsController(ApplicationDbContext context, ILogger<PatientsController> logger)
         {
-            _db = db;
+            _context = context;
+            _logger = logger;
         }
 
         /// <summary>
@@ -24,12 +27,14 @@ namespace RevaliInstruct.Api.Controllers
         /// Ondersteunt zoeken op naam (q) en filteren op status.
         /// </summary>
         [HttpGet]
-        public async Task<IActionResult> GetPatients(
+        public async Task<ActionResult<IEnumerable<object>>> GetPatients(
             [FromQuery] string? q,
             [FromQuery] string? status,
-            CancellationToken ct = default)
+            [FromQuery] int page = 1,
+            [FromQuery] int pageSize = 20,
+            [FromQuery] string? sort = null)
         {
-            var query = _db.Patients.AsNoTracking();
+            var query = _context.Patients.AsQueryable();
 
             // (optioneel) later kun je hier filteren op ingelogde arts:
             // var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
@@ -54,50 +59,91 @@ namespace RevaliInstruct.Api.Controllers
                 query = query.Where(p => p.Status == parsedStatus);
             }
 
-            var rows = await query
-                .OrderBy(p => p.LastName)
-                .ThenBy(p => p.FirstName)
+            query = query.OrderBy(p => p.LastName).ThenBy(p => p.FirstName);
+
+            var items = await query
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
                 .Select(p => new
                 {
                     p.Id,
                     p.FirstName,
                     p.LastName,
-                    // Laat datum weg als het de default MinValue is
-                    DateOfBirth = p.DateOfBirth == DateTime.MinValue ? (DateTime?)null : p.DateOfBirth,
-                    StartDate   = p.StartDate   == DateTime.MinValue ? (DateTime?)null : p.StartDate,
-                    Status      = p.Status.ToString(),
-                    p.Notes
+                    p.Status,
+                    p.StartDate,
+                    p.Notes,
+                    p.AssignedDoctorUserId
                 })
-                .ToListAsync(ct);
+                .ToListAsync();
 
-            return Ok(rows);
+            return Ok(items);
         }
 
         /// <summary>
         /// Haalt de details op van één patiënt.
         /// </summary>
         [HttpGet("{id:int}")]
-        public async Task<IActionResult> GetPatient(int id, CancellationToken ct = default)
+        public async Task<ActionResult<object>> GetPatient(int id)
         {
-            var patient = await _db.Patients
-                .AsNoTracking()
-                .Where(x => x.Id == id)
-                .Select(x => new
-                {
-                    x.Id,
-                    x.FirstName,
-                    x.LastName,
-                    x.DateOfBirth,
-                    x.StartDate,
-                    Status = x.Status.ToString(),
-                    x.Notes
-                })
-                .FirstOrDefaultAsync(ct);
-
-            if (patient == null)
+            var p = await _context.Patients.FindAsync(id);
+            if (p == null)
                 return NotFound();
 
-            return Ok(patient);
+            return Ok(new
+            {
+                p.Id,
+                p.FirstName,
+                p.LastName,
+                p.Status,
+                p.StartDate,
+                p.DateOfBirth,
+                p.Diagnosis,
+                p.Notes,
+                p.AssignedDoctorUserId
+            });
         }
+
+        /// <summary>
+        /// Haalt het dossier op van één patiënt.
+        /// </summary>
+        [HttpGet("{id:int}/dossier")]
+        public async Task<ActionResult<object>> GetPatientDossier(int id)
+        {
+            try
+            {
+                // Alleen de Patient zelf ophalen; geen Includes naar niet-bestaande tabellen
+                var patient = await _context.Patients
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(p => p.Id == id);
+
+                if (patient == null)
+                    return NotFound(new { message = $"Patient {id} not found" });
+
+                // Simpel dossier – genoeg voor US1
+                var dossier = new
+                {
+                    patient.Id,
+                    patient.FirstName,
+                    patient.LastName,
+                    patient.Status,
+                    patient.StartDate,
+                    patient.DateOfBirth,
+                    patient.Diagnosis,
+                    patient.Notes
+                    // Als je later Intakes / Exercises / PainEntries tabellen hebt,
+                    // kun je die hier weer toevoegen.
+                };
+
+                return Ok(dossier);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in GetPatientDossier for patient {PatientId}", id);
+                return StatusCode(StatusCodes.Status500InternalServerError,
+                    new { message = "Error while loading patient dossier", patientId = id });
+            }
+        }
+
+        // ...optioneel: andere endpoints...
     }
 }

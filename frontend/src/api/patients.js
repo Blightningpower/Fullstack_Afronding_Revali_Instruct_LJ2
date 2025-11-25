@@ -58,20 +58,35 @@ export const getPatients = async (params) => {
 
 // Eén patiënt ophalen
 export async function fetchPatient(id) {
-  const response = await api.get(`${base}/${id}`);
-  const list = normalizePatientsResponse([response.data]);
-  return list[0] ?? null;
+  try {
+    const response = await api.get(`${base}/${id}`);
+    const list = normalizePatientsResponse([response.data]);
+    return list[0] ?? null;
+  } catch (err) {
+    console.error('fetchPatient failed', { id, err });
+    throw err; // laat de caller beslissen of er naar /login geredirect wordt
+  }
 }
 
 // Alias idem
 export const getPatientById = async (id) => {
-  const response = await api.get(`${base}/${id}`);
-  const list = normalizePatientsResponse([response.data]);
-  return list[0] ?? null;
+  try {
+    const response = await api.get(`${base}/${id}`);
+    const list = normalizePatientsResponse([response.data]);
+    return list[0] ?? null;
+  } catch (err) {
+    console.error('getPatientById failed', { id, err });
+    throw err;
+  }
 };
 
 // Dossier–endpoint
 export const getPatientDossier = async (id) => {
-  const res = await api.get(`${base}/${id}/dossier`);
-  return res.data;
+  try {
+    const res = await api.get(`${base}/${id}/dossier`);
+    return res.data;
+  } catch (err) {
+    console.error('getPatientDossier failed', { id, err });
+    throw err;
+  }
 };

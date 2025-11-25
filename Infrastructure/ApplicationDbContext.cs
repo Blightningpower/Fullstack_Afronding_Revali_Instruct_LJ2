@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Microsoft.EntityFrameworkCore.Metadata;
 using System.ComponentModel.DataAnnotations.Schema;
 
-namespace MyApplication.Data
+namespace RevaliInstruct.Core.Data
 {
     public partial class ApplicationDbContext : DbContext
     {

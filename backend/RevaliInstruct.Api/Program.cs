@@ -2,13 +2,16 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using Microsoft.AspNetCore.Diagnostics;                 // <- nieuw, voor IExceptionHandlerFeature
 using RevaliInstruct.Core.Data;
-using System.Security.Claims;
+using RevaliInstruct.Api.Middleware;
+using RevaliInstruct.Api.Services;
 using System.Text;
-using Microsoft.AspNetCore.Diagnostics;
+
+// CORS policy name constant
+const string MyAllowedOrigins = "MyAllowedOrigins";     // <- nieuw
 
 var builder = WebApplication.CreateBuilder(args);
-var MyAllowedOrigins = "_myAllowedOrigins";
 
 // Handmatige .env ondersteuning 
 var envFile = Path.Combine(Directory.GetCurrentDirectory(), ".env");
@@ -272,254 +275,14 @@ if (app.Environment.IsDevelopment())
 // Zorg voor juiste volgorde van middleware
 app.UseRouting();
 
-// <-- voeg CORS middleware toe vóór authentication
-app.UseCors(MyAllowedOrigins);
-
 app.UseAuthentication();
+
+// hierna de middleware die de SQL session context zet
+app.UseMiddleware<SqlSessionContextMiddleware>();
+
 app.UseAuthorization();
-
-// Zet SESSION_CONTEXT voor Row-Level Security (RLS)
-// Haalt UserId en IsAdmin uit JWT claims en schrijft naar SQL Server session
-app.Use(async (ctx, next) =>
-{
-    string? FindClaim(params string[] types) =>
-        types.Select(t => ctx.User.FindFirst(t)?.Value).FirstOrDefault(v => !string.IsNullOrWhiteSpace(v));
-
-    int userId = 0;
-    var uidStr = FindClaim(ClaimTypes.NameIdentifier, "sub", "uid", "UserId", "user_id");
-    if (!string.IsNullOrWhiteSpace(uidStr)) int.TryParse(uidStr, out userId);
-
-    bool isAdmin = ctx.User.IsInRole("Admin") ||
-        (FindClaim(ClaimTypes.Role, "role", "roles")?.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-            .Any(r => string.Equals(r, "Admin", StringComparison.OrdinalIgnoreCase)) ?? false);
-
-    try
-    {
-        var db = ctx.RequestServices.GetRequiredService<ApplicationDbContext>();
-        await db.Database.ExecuteSqlRawAsync("EXEC sys.sp_set_session_context @key=N'UserId', @value={0};", userId);
-        await db.Database.ExecuteSqlRawAsync("EXEC sys.sp_set_session_context @key=N'IsAdmin', @value={0};", isAdmin ? "true" : "false");
-    }
-    catch (Exception ex)
-    {
-        var logger = ctx.RequestServices.GetRequiredService<ILogger<Program>>();
-        logger.LogWarning(ex, "SESSION_CONTEXT error");
-    }
-
-    await next();
-});
 
 // Map attribute routed controllers
 app.MapControllers();
 
-// Voeg dossier endpoint toe (US2: Patiëntendossier Inzien)
-// 1 handler, 2 routes (/api/... en legacy zonder prefix)
-async Task<IResult> DossierHandler(int id, ApplicationDbContext db, HttpContext ctx, CancellationToken ct)
-{
-    // Haal UserId en Role uit JWT claims
-    var userIdClaim = ctx.User.FindFirst(ClaimTypes.NameIdentifier)?.Value
-                   ?? ctx.User.FindFirst("sub")?.Value;
-
-    if (!int.TryParse(userIdClaim, out var userId))
-        return Results.Unauthorized();
-
-    var isAdmin = ctx.User.IsInRole("Admin");
-    var isDoctor = isAdmin || ctx.User.IsInRole("Doctor");
-    if (!isDoctor) return Results.Forbid();
-
-    var p = await db.Patients.AsNoTracking().FirstOrDefaultAsync(x => x.Id == id, ct);
-    if (p is null) return Results.NotFound(new { message = "Patient not found" });
-
-    if (!isAdmin)
-    {
-        var assignedDocId = EF.Property<int?>(p, "AssignedDoctorUserId");
-        if (assignedDocId != userId) return Results.Forbid();
-    }
-
-    var patient = new BasicPatientDto
-    {
-        Id = p.Id,
-        FirstName = p.FirstName,
-        LastName = p.LastName,
-        Email = null,
-        Phone = null,
-        ReferringDoctor = null,
-        DateOfBirth = p.DateOfBirth == DateTime.MinValue ? null : p.DateOfBirth,
-        StartDate = p.StartDate == DateTime.MinValue ? null : p.StartDate,
-        Status = p.Status.ToString()
-    };
-
-    var r = new Random(id);
-    string safeLast = (patient.LastName ?? "").Replace(" ", "").ToLowerInvariant();
-    if (string.IsNullOrWhiteSpace(patient.Email) && !string.IsNullOrWhiteSpace(patient.FirstName) && !string.IsNullOrWhiteSpace(patient.LastName))
-        patient.Email = $"{char.ToLowerInvariant(patient.FirstName![0])}.{safeLast}@examplehospital.nl";
-    if (string.IsNullOrWhiteSpace(patient.Phone))
-        patient.Phone = $"06-{r.Next(10000000, 99999999)}";
-    if (string.IsNullOrWhiteSpace(patient.ReferringDoctor))
-        patient.ReferringDoctor = $"Huisarts {Convert.ToChar('A' + r.Next(0, 26))}";
-
-    var exerciseNames = new[] { "Kniebuiging", "Schouder abductie", "Heuplift", "Enkel cirkels", "Quadriceps stretch", "Hamstring stretch", "Core stabiliteit" };
-    var exercises = Enumerable.Range(1, r.Next(3, 6))
-        .Select(i => new ExerciseDto
-        {
-            Id = i,
-            Name = exerciseNames[r.Next(exerciseNames.Length)],
-            Status = r.NextDouble() < 0.5 ? "Toegewezen" : "Afgevinkt"
-        })
-        .ToArray();
-
-    var pains = Enumerable.Range(0, 14)
-        .Select(d => new PainEntryDto
-        {
-            Date = DateTime.UtcNow.Date.AddDays(-d),
-            Level = r.Next(1, 10),
-            Note = r.NextDouble() < 0.25 ? "Na oefening licht toegenomen" : null
-        })
-        .OrderBy(x => x.Date)
-        .ToArray();
-
-    var activityNames = new[] { "Wandelen", "Fietsen", "Huishoudelijk werk", "Zwemmen", "Krachttraining" };
-    var activities = Enumerable.Range(0, r.Next(2, 5))
-        .Select(i => new ActivityLogDto
-        {
-            Date = DateTime.UtcNow.Date.AddDays(-r.Next(0, 7)),
-            Activity = activityNames[r.Next(activityNames.Length)],
-            Notes = r.NextDouble() < 0.3 ? "Ging goed" : null
-        })
-        .OrderByDescending(x => x.Date)
-        .ToArray();
-
-    var medCatalog = new (string name, string dose)[] {
-        ("Paracetamol", "500 mg 1-3x/dag"),
-        ("Ibuprofen", "400 mg 1-2x/dag"),
-        ("Naproxen", "250 mg 2x/dag")
-    };
-    var meds = Enumerable.Range(0, r.Next(0, 3))
-        .Select(_ => {
-            var m = medCatalog[r.Next(medCatalog.Length)];
-            return new MedicationDto { Name = m.name, Dosage = m.dose };
-        })
-        .ToArray();
-
-    var accCatalog = new[] { "Elastische band (medium)", "Kniebrace", "Enkelbandage", "Schouderband" };
-    var accessories = Enumerable.Range(0, r.Next(0, 3))
-        .Select(_ => new AccessoryDto
-        {
-            Name = accCatalog[r.Next(accCatalog.Length)],
-            Instructions = "Gebruik tijdens oefening of activiteit"
-        })
-        .ToArray();
-
-    var apptTypes = new[] { "Intake", "Controle", "Evaluatie" };
-    var appointments = new[]
-    {
-        new AppointmentDto { Date = DateTime.UtcNow.AddDays(-21), Type = apptTypes[r.Next(apptTypes.Length)], Status = "Afgerond" },
-        new AppointmentDto { Date = DateTime.UtcNow.AddDays(-7),  Type = apptTypes[r.Next(apptTypes.Length)], Status = "Afgerond" },
-        new AppointmentDto { Date = DateTime.UtcNow.AddDays(7),   Type = apptTypes[r.Next(apptTypes.Length)], Status = "Gepland" }
-    };
-
-    var dossier = new DossierDto
-    {
-        Patient = patient,
-        Exercises = exercises,
-        PainTimeline = pains,
-        Activities = activities,
-        Medications = meds,
-        Accessories = accessories,
-        Appointments = appointments
-    };
-
-    return Results.Ok(dossier);
-}
-
-app.MapGet("/api/patients/{id:int}/dossier", DossierHandler);
-app.MapGet("/patients/{id:int}/dossier", DossierHandler);
-app.MapGet("/api/dossier/{id:int}", DossierHandler);
-
-// Simpel endpoint dat de huidige server-instance teruggeeft (kan door frontend zonder auth aangeroepen worden)
-app.MapGet("/api/instance", () => Results.Ok(new { instance = serverInstanceId }));
-
-// Dev endpoint to reset and reseed manually
-app.MapPost("/api/dev/reset-db", async (IServiceProvider sp) =>
-{
-    using var scope = sp.CreateScope();
-    var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-    await DbInitializer.ResetAndSeedAsync(db);
-    return Results.Ok(new { reset = true });
-});
-
 app.Run();
-
-#region DTOs voor dossier (US2)
-internal sealed class PatientsListItemDto
-{
-    public int Id { get; set; }
-    public string? FirstName { get; set; }
-    public string? LastName { get; set; }
-    public DateTime? StartDate { get; set; }
-    public string? Status { get; set; }
-}
-
-internal sealed class DossierDto
-{
-    public BasicPatientDto Patient { get; set; } = default!;
-    public IEnumerable<ExerciseDto> Exercises { get; set; } = Enumerable.Empty<ExerciseDto>();
-    public IEnumerable<PainEntryDto> PainTimeline { get; set; } = Enumerable.Empty<PainEntryDto>();
-    public IEnumerable<ActivityLogDto> Activities { get; set; } = Enumerable.Empty<ActivityLogDto>();
-    public IEnumerable<MedicationDto> Medications { get; set; } = Enumerable.Empty<MedicationDto>();
-    public IEnumerable<AccessoryDto> Accessories { get; set; } = Enumerable.Empty<AccessoryDto>();
-    public IEnumerable<AppointmentDto> Appointments { get; set; } = Enumerable.Empty<AppointmentDto>();
-}
-
-internal sealed class BasicPatientDto
-{
-    public int Id { get; set; }
-    public string? FirstName { get; set; }
-    public string? LastName { get; set; }
-    public string? Email { get; set; }
-    public string? Phone { get; set; }
-    public string? ReferringDoctor { get; set; }
-    public DateTime? DateOfBirth { get; set; }
-    public DateTime? StartDate { get; set; }
-    public string? Status { get; set; }
-}
-
-internal sealed class ExerciseDto
-{
-    public int Id { get; set; }
-    public string? Name { get; set; }
-    public string? Status { get; set; }
-}
-
-internal sealed class PainEntryDto
-{
-    public DateTime Date { get; set; }
-    public int Level { get; set; }
-    public string? Note { get; set; }
-}
-
-internal sealed class ActivityLogDto
-{
-    public DateTime Date { get; set; }
-    public string? Activity { get; set; }
-    public string? Notes { get; set; }
-}
-
-internal sealed class MedicationDto
-{
-    public string? Name { get; set; }
-    public string? Dosage { get; set; }
-}
-
-internal sealed class AccessoryDto
-{
-    public string? Name { get; set; }
-    public string? Instructions { get; set; }
-}
-
-internal sealed class AppointmentDto
-{
-    public DateTime Date { get; set; }
-    public string? Type { get; set; }
-    public string? Status { get; set; }
-}
-#endregion

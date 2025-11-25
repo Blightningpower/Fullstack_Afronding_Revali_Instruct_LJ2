@@ -99,7 +99,8 @@ const load = async () => {
   error.value = ''
   try {
     const dossier = await getPatientDossier(route.params.id)
-    patient.value = dossier.patient // bevat: firstName, lastName, status, dateOfBirth, startDate, email, phone, referringDoctor
+    // API geeft een flat object terug, geen { patient: {...} }
+    patient.value = dossier
   } catch (e) {
     error.value = e?.response?.data?.message || e.message || 'Laden mislukt'
   } finally {
