@@ -5,12 +5,30 @@
 
       <form class="patient-table-controls" @submit.prevent="load" novalidate>
         <label for="q" class="visually-hidden">Zoek op naam</label>
-        <input id="q" name="q" v-model="q" type="text" placeholder="🔍 Zoek op naam..." autocomplete="name" />
+        <input
+          id="q"
+          name="q"
+          v-model="q"
+          type="text"
+          placeholder="🔍 Zoek op naam..."
+          autocomplete="name"
+        />
 
         <label for="status" class="visually-hidden">Status filter</label>
-        <select id="status" name="status" v-model="status" autocomplete="off">
+        <select
+          id="status"
+          name="status"
+          v-model="status"
+          autocomplete="off"
+        >
           <option value="">Alle statussen</option>
-          <option v-for="s in knownStatuses" :key="s" :value="s">{{ s }}</option>
+          <option
+            v-for="opt in statusOptions"
+            :key="opt.value"
+            :value="opt.value"
+          >
+            {{ opt.label }}
+          </option>
         </select>
 
         <button type="submit">Zoek</button>
@@ -18,7 +36,10 @@
 
       <div v-if="loading" class="loading-state">⏳ Laden...</div>
       <div v-else-if="error" class="error-state">⚠️ {{ error }}</div>
-      <div v-else-if="items.length === 0" class="empty-state">Geen patiënten gevonden</div>
+      <div v-else-if="items.length === 0" class="empty-state">
+        Geen patiënten gevonden
+      </div>
+
       <table v-else>
         <thead>
           <tr>
@@ -31,7 +52,13 @@
           <tr v-for="p in items" :key="p.id" @click="goDetail(p.id)">
             <td><strong>{{ p.firstName }} {{ p.lastName }}</strong></td>
             <td>{{ formatDate(p.startDate) }}</td>
-            <td><span :class="['status-badge', getStatusClass(p.status)]">{{ p.status }}</span></td>
+            <td>
+              <span
+                :class="['status-badge', getStatusClass(p.status)]"
+              >
+                {{ displayStatus(p.status) }}
+              </span>
+            </td>
           </tr>
         </tbody>
       </table>
@@ -41,8 +68,8 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
-import { getPatients } from '../api/patients'
 import { useRouter } from 'vue-router'
+import { getPatients } from '../api/patients'
 
 const router = useRouter()
 const items = ref([])
@@ -50,20 +77,35 @@ const loading = ref(false)
 const error = ref('')
 const q = ref('')
 const status = ref('')
-const knownStatuses = ['Intake gepland', 'Actief', 'Afgerond', 'On hold'] // toonlabels; backend levert enum-strings
 
-const formatDate = (d) => d ? new Date(d).toLocaleDateString() : '-'
+// waarden hier zijn de enum-strings van de backend
+const statusOptions = [
+  { value: 'IntakePlanned', label: 'Intake gepland' },
+  { value: 'Active',        label: 'Actief' },
+  { value: 'Completed',     label: 'Afgerond' },
+  { value: 'OnHold',        label: 'On hold' },
+]
+
+// helper: API → Nederlands label
+const displayStatus = (status) => {
+  const map = {
+    IntakePlanned: 'Intake gepland',
+    Active: 'Actief',
+    Completed: 'Afgerond',
+    OnHold: 'On hold',
+  }
+  return map[status] || status || '-'
+}
+
+const formatDate = (d) =>
+  d ? new Date(d).toLocaleDateString('nl-NL') : '-'
 
 const getStatusClass = (status) => {
   const map = {
-    'Actief': 'status-active',
-    'Active': 'status-active',
-    'Intake gepland': 'status-planned',
-    'IntakePlanned': 'status-planned',
-    'Afgerond': 'status-completed',
-    'Completed': 'status-completed',
-    'On hold': 'status-hold',
-    'OnHold': 'status-hold'
+    Active: 'status-active',
+    IntakePlanned: 'status-planned',
+    Completed: 'status-completed',
+    OnHold: 'status-hold',
   }
   return map[status] || 'status-default'
 }
@@ -72,9 +114,13 @@ const load = async () => {
   loading.value = true
   error.value = ''
   try {
-    items.value = await getPatients({ q: q.value, status: status.value || undefined })
+    items.value = await getPatients({
+      q: q.value?.trim() || undefined,
+      status: status.value || undefined, // nu zijn dit enum-waarden
+    })
   } catch (e) {
-    error.value = e?.response?.data?.message || e.message || 'Laden mislukt'
+    error.value =
+      e?.response?.data?.message || e.message || 'Laden mislukt'
   } finally {
     loading.value = false
   }
@@ -86,9 +132,16 @@ onMounted(load)
 </script>
 
 <style>
-/* eenvoudige helper voor verborgen labels t.b.v. a11y */
+/* helper voor verborgen labels t.b.v. a11y */
 .visually-hidden {
-  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden;
-  clip: rect(0,0,0,0); white-space: nowrap; border: 0;
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 </style>

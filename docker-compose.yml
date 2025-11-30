@@ -2,15 +2,18 @@
   mssql:
     image: mcr.microsoft.com/mssql/server:2022-latest
     container_name: revali_mssql
+    env_file:
+      - .env
     environment:
       - ACCEPT_EULA=Y
       - MSSQL_SA_PASSWORD=${MSSQL_SA_PASSWORD}
     ports:
-      - "1433:1433"
+      - "5000:8080"
     volumes:
       - ./sql-scripts:/scripts:ro
     healthcheck:
-      test: ["CMD", "/opt/mssql-tools/bin/sqlcmd", "-S", "localhost", "-U", "sa", "-P", "${MSSQL_SA_PASSWORD}", "-Q", "select 1"]
+      # simpele check of poort 1433 luistert
+      test: ["CMD", "/opt/mssql-tools/bin/sqlcmd", "-S", "localhost", "-U", "sa", "-P", "${MSSQL_SA_PASSWORD}", "-Q", "SELECT 1"]
       interval: 10s
       retries: 10
 
@@ -18,18 +21,21 @@
     image: mcr.microsoft.com/mssql-tools
     depends_on:
       - mssql
+    env_file:
+      - .env
     volumes:
       - ./sql-scripts:/scripts:ro
-    entrypoint: /bin/bash -c
+    entrypoint: /bin/bash
     command:
+      - -c
       - |
-        "until /opt/mssql-tools/bin/sqlcmd -S mssql -U sa -P \"$${MSSQL_SA_PASSWORD}\" -Q 'SELECT 1' 2>/dev/null; do
-           echo 'wachten op mssql...';
-           sleep 1;
-         done;
-         echo 'running init script...';
-         /opt/mssql-tools/bin/sqlcmd -S mssql -U sa -P \"$${MSSQL_SA_PASSWORD}\" -i /scripts/mssql_init.sql;
-         echo 'init finished.'"
+        until /opt/mssql-tools/bin/sqlcmd -S mssql -U sa -P "$MSSQL_SA_PASSWORD" -Q 'SELECT 1' 2>/dev/null; do
+          echo 'wachten op mssql...';
+          sleep 1;
+        done;
+        echo 'running init script...';
+        /opt/mssql-tools/bin/sqlcmd -S mssql -U sa -P "$MSSQL_SA_PASSWORD" -i /scripts/mssql_init.sql;
+        echo 'init finished.'
 
   api:
     build:
@@ -39,8 +45,9 @@
       - .env
     environment:
       - ConnectionStrings__DefaultConnection=Server=mssql,1433;Database=${MSSQL_DATABASE};User Id=${MSSQL_USER};Password=${MSSQL_PASSWORD};TrustServerCertificate=True;MultipleActiveResultSets=true;
-      - JWT_Secret=${JWT_SECRET}
+      - JWT__Secret=${JWT_SECRET}
     ports:
       - "5000:80"
     depends_on:
       - mssql
+      - db-init

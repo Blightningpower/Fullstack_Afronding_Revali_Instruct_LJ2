@@ -1,8 +1,47 @@
-# Node / frontend
+# Frontend (Node / Vite)
 frontend/node_modules/
 frontend/dist/
+frontend/dist-ssr/
 
-# Environment / secrets
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# .NET / Visual Studio
+.vs/
+.vscode/
+bin/
+obj/
+**/bin/
+**/obj/
+*.user
+*.suo
+
+# NuGet / EF tooling
+*.nupkg
+.nuget/
+packages/
+**/*.csproj.nuget.*
+**/*.csproj.EntityFrameworkCore.targets
+**/Migrations/**/obj/
+**/obj/project.assets.json
+
+# IDE / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Docker
+docker-compose.override.yml
+docker-compose.yml.bak
+
+# Env / secrets
 .env
 .env.*
 !.env.example
@@ -10,77 +49,3 @@ frontend/dist/
 *.env.local
 *.env.bak
 user-secrets.json
-
-# .NET / Visual Studio
-.vs/
-.vscode/
-bin/
-obj/
-*.user
-*.suo
-*.userosscache
-*.sln.docstates
-*.csproj.user
-*.cache
-*.ide
-
-# NuGet
-*.nupkg
-.nuget/
-packages/
-**/*.csproj.nuget.*
-**/*.csproj.EntityFrameworkCore.targets
-**/obj/project.assets.json
-
-# EF tooling output
-**/Migrations/**/obj/
-**/obj/project.assets.json
-**/*.csproj.nuget.*
-**/*.csproj.EntityFrameworkCore.targets
-
-# Build outputs
-publish/
-*.dll
-*.exe
-
-# Database files (lokale DBs)
-*.sqlite
-*.db
-*.mdf
-*.ldf
-
-# Docker / compose
-.env.*.local
-docker-compose.override.yml
-docker-compose.yml.bak
-
-# Misc
-.DS_Store
-*.log
-coverage/
-*.sqlite3
-
-# .NET build
-**/bin/
-**/obj/
-**/TestResults/
-*.user
-*.csproj.user
-*.suo
-
-# IDE/OS
-.vs/
-.vscode/
-.DS_Store
-Thumbs.db
-
-# Env/secrets (bewaar alleen voorbeelden)
-.env
-.env.*
-!.env.example
-!.env.template
-
-# Misc
-logs/
-*.log
-*.http

@@ -20,15 +20,20 @@ export async function apiFetch(input: RequestInfo, init?: RequestInit) {
 
 	// optionele handige foutafhandeling
 	if (!res.ok) {
-		// probeer JSON message te lezen
-		let body: any = null;
-		try { body = await res.json(); } catch { }
-		const msg = body?.error ?? body?.message ?? res.statusText;
-		const e = new Error(`API ${res.status}: ${msg}`);
-		// @ts-ignore voeg response mee
-		e.response = res;
-		throw e;
-	}
+  let body: any = null;
+  try { body = await res.json(); } catch {}
+
+  // 401 → token weggooien + redirect naar login
+  if (res.status === 401) {
+    try { localStorage.removeItem("token"); } catch {}
+    window.location.href = "/login";
+  }
+
+  const msg = body?.error ?? body?.message ?? res.statusText;
+  const e: any = new Error(`API ${res.status}: ${msg}`);
+  e.response = res;
+  throw e;
+}
 
 	// als geen content
 	if (res.status === 204) return null;
