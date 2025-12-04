@@ -86,28 +86,37 @@ const statusOptions = [
   { value: 'OnHold',        label: 'On hold' },
 ]
 
-// helper: API → Nederlands label
-const displayStatus = (status) => {
-  const map = {
-    IntakePlanned: 'Intake gepland',
-    Active: 'Actief',
-    Completed: 'Afgerond',
-    OnHold: 'On hold',
-  }
-  return map[status] || status || '-'
-}
-
 const formatDate = (d) =>
   d ? new Date(d).toLocaleDateString('nl-NL') : '-'
 
+const STATUS_LABELS = {
+  '0': 'Intake gepland',
+  '1': 'Actief',
+  '2': 'Afgerond',
+  '3': 'On hold',
+  IntakePlanned: 'Intake gepland',
+  Active: 'Actief',
+  Completed: 'Afgerond',
+  OnHold: 'On hold',
+}
+
+const STATUS_CLASSES = {
+  '0': 'status-planned',
+  '1': 'status-active',
+  '2': 'status-completed',
+  '3': 'status-hold',
+  IntakePlanned: 'status-planned',
+  Active: 'status-active',
+  Completed: 'status-completed',
+  OnHold: 'status-hold',
+}
+
+const displayStatus = (status) => {
+  return STATUS_LABELS[String(status)] || '-'
+}
+
 const getStatusClass = (status) => {
-  const map = {
-    Active: 'status-active',
-    IntakePlanned: 'status-planned',
-    Completed: 'status-completed',
-    OnHold: 'status-hold',
-  }
-  return map[status] || 'status-default'
+  return STATUS_CLASSES[String(status)] || 'status-default'
 }
 
 const load = async () => {
