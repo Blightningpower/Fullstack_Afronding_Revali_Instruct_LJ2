@@ -3,20 +3,37 @@
     <nav>
       <div class="nav-left">
         <h1>Revali Instruct</h1>
-        <!-- hide Patients link on the login page -->
+
+        <!-- Patients link niet tonen op de login pagina -->
         <router-link v-if="showPatientsLink" to="/patients" class="nav-link">
           Patients
         </router-link>
       </div>
 
-      <!-- login / logout button -->
-      <div class="auth-actions">
-        <router-link v-if="!isLogged" to="/login" class="btn-login">Login</router-link>
-        <button v-else @click="handleLogout" class="btn-logout">Logout</button>
+      <!-- login / logout + username (niet tonen op loginpagina) -->
+      <div class="auth-actions" v-if="!isLoginPage">
+        <span v-if="isLogged && currentUsername" class="user-label">
+          Ingelogd als <strong>{{ currentUsername }}</strong>
+        </span>
+
+        <router-link
+          v-if="!isLogged"
+          to="/login"
+          class="btn-login"
+        >
+          Login
+        </router-link>
+
+        <button
+          v-else
+          @click="handleLogout"
+          class="btn-logout"
+        >
+          Logout
+        </button>
       </div>
     </nav>
 
-    <!-- laat layout verder over aan je globale CSS (App.css) -->
     <main>
       <router-view />
     </main>
@@ -30,26 +47,59 @@ import { useRouter, useRoute } from 'vue-router';
 const router = useRouter();
 const route = useRoute();
 
-// show Patients link behalve op de login pagina
-const showPatientsLink = computed(() => {
+// Hulpje: is dit de loginpagina?
+const isLoginPage = computed(() => {
   const name = route.name ?? '';
   const path = route.path ?? '';
-  return !(name === 'Login' || path === '/login');
+  return name === 'Login' || path === '/login';
 });
 
-// lees token direct uit localStorage
+// Patients-link verbergen op loginpagina
+const showPatientsLink = computed(() => !isLoginPage.value);
+
+// Uit localStorage lezen of er een token is
 const isLogged = computed(() => {
   try {
-    return !!localStorage.getItem('token');
+    const token = localStorage.getItem('token');
+    return !!(token && token.trim().length > 0);
   } catch {
     return false;
+  }
+});
+
+// Username uit JWT-token halen (payload decoden)
+const currentUsername = computed(() => {
+  try {
+    const token = localStorage.getItem('token');
+    if (!token) return '';
+
+    const parts = token.split('.');
+    if (parts.length !== 3) return '';
+
+    // JWT base64url → normaal base64
+    const base64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+    const json = atob(base64);
+    const payload = JSON.parse(json);
+
+    // Proberen een bruikbare username claim te pakken
+    return (
+      payload.username ||
+      payload.unique_name ||
+      payload.name ||
+      payload.sub ||
+      ''
+    );
+  } catch {
+    return '';
   }
 });
 
 function handleLogout() {
   try {
     localStorage.removeItem('token');
-  } catch { }
+  } catch {
+    // ignore
+  }
   router.push('/login');
 }
 </script>
@@ -90,13 +140,23 @@ nav {
   background: rgba(255, 255, 255, 0.06);
 }
 
-/* auth buttons */
+/* auth area rechtsboven */
 .auth-actions {
   display: flex;
   gap: 0.5rem;
   align-items: center;
 }
 
+.user-label {
+  font-size: 0.9rem;
+  opacity: 0.9;
+}
+
+.user-label strong {
+  font-weight: 600;
+}
+
+/* knoppen */
 .btn-login,
 .btn-logout {
   background: rgba(255, 255, 255, 0.12);
@@ -112,5 +172,4 @@ nav {
 .btn-logout:hover {
   background: rgba(255, 255, 255, 0.18);
 }
-
 </style>

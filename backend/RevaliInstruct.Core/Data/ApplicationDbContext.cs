@@ -35,7 +35,7 @@ namespace RevaliInstruct.Core.Data
             // Patient
             modelBuilder.Entity<Patient>(b =>
             {
-                // Status: laat de enum gewoon als int opslaan (standaard gedrag)
+                // Status: laat de enum gewoon als int opslaan
                 b.HasOne(p => p.AssignedDoctor)
                     .WithMany(u => u.Patients)
                     .HasForeignKey(p => p.AssignedDoctorUserId)
@@ -60,7 +60,7 @@ namespace RevaliInstruct.Core.Data
                     .OnDelete(DeleteBehavior.Restrict);
             });
 
-            // Enums as string voor andere entiteiten (dit botst niet met je huidige DB)
+            // Enums as string voor andere entiteiten
             modelBuilder.Entity<Appointment>()
                 .Property(a => a.Status)
                 .HasConversion<string>();
