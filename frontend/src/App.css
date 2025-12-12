@@ -378,3 +378,62 @@ button:active, input[type="submit"]:active {
 .container, .patient-table-card, table, .empty-state {
     animation: fadeInUp 0.5s;
 }
+
+/* Dossier-secties onder de basisgegevens */
+.patient-dossier {
+    margin-top: 32px;
+    padding-top: 24px;
+    border-top: 2px solid #eaf6fb;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 24px;
+}
+
+/* Los vakje per onderdeel (oefeningen, pijn, activiteiten, etc.) */
+.dossier-section {
+    background: #fafdff;
+    border-radius: 12px;
+    border: 2px solid #eaf6fb;
+    padding: 20px 22px;
+    box-shadow: 0 2px 8px rgba(59,179,206,0.06);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+/* Titel van een dossierblok */
+.dossier-section-title {
+    font-size: 1rem;
+    font-weight: 700;
+    color: #2a7ca3;
+    margin: 0 0 4px 0;
+}
+
+/* Lijstjes in het dossierblok */
+.dossier-list {
+    margin: 0;
+    padding-left: 1.1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    font-size: 0.98rem;
+    color: #234;
+}
+
+/* Optioneel: maak belangrijke stuk vet (bijv. titel oefening) */
+.dossier-item-title {
+    font-weight: 600;
+}
+
+/* Kleinere tekst voor meta-info achter de titel */
+.dossier-item-meta {
+    font-weight: 400;
+    color: #4a6375;
+}
+
+/* Op mobiel één kolom */
+@media (max-width: 900px) {
+    .patient-dossier {
+        grid-template-columns: 1fr;
+    }
+}

@@ -7,6 +7,12 @@ namespace RevaliInstruct.Core.Entities
         public string LastName { get; set; } = string.Empty;
         public DateTime DateOfBirth { get; set; }
         public string? Diagnosis { get; set; }
+
+        // 🔽 nieuwe velden, sluiten aan op de kolommen die je net in SSMS hebt aangemaakt
+        public string? Email { get; set; }
+        public string? Phone { get; set; }
+        public string? ReferringDoctor { get; set; }
+
         public PatientStatus Status { get; set; } = PatientStatus.IntakePlanned;
         public string? Notes { get; set; }
 
@@ -22,8 +28,6 @@ namespace RevaliInstruct.Core.Entities
         public ICollection<PatientNote> PatientNotes { get; set; } = new List<PatientNote>();
         public ICollection<AccessoryAdvice> AccessoryAdvices { get; set; } = new List<AccessoryAdvice>();
 
-        // Let op: we gebruiken DateTime.MinValue als "geen startdatum bekend".
-        // In de controller vertalen we MinValue naar null voor de frontend.
         public DateTime StartDate { get; set; } = DateTime.MinValue;
     }
 
