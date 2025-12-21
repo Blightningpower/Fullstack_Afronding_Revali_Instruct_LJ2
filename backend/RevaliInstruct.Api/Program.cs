@@ -1,19 +1,21 @@
+using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
-using Microsoft.AspNetCore.Diagnostics;                 // <- nieuw, voor IExceptionHandlerFeature
-using RevaliInstruct.Core.Data;
 using RevaliInstruct.Api.Middleware;
 using RevaliInstruct.Api.Services;
-using System.Text;
+using RevaliInstruct.Core.Data;
 
 // CORS policy name constant
-const string MyAllowedOrigins = "MyAllowedOrigins";     // <- nieuw
+const string MyAllowedOrigins = "MyAllowedOrigins";
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Handmatige .env ondersteuning 
+// =====================
+// .env handmatig inladen
+// =====================
 var envFile = Path.Combine(Directory.GetCurrentDirectory(), ".env");
 if (File.Exists(envFile))
 {
@@ -28,11 +30,13 @@ if (File.Exists(envFile))
     }
 }
 
-// Add services to the container.
-builder.Services.AddControllers(); // <- zorg dat controllers geregistreerd zijn
+// =====================
+// Services registreren
+// =====================
+builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 
-// Swagger met JWT Bearer support
+// Swagger + JWT definitie
 builder.Services.AddSwaggerGen(c =>
 {
     var xml = $"{System.Reflection.Assembly.GetExecutingAssembly().GetName().Name}.xml";
@@ -43,6 +47,7 @@ builder.Services.AddSwaggerGen(c =>
     }
 
     c.SwaggerDoc("v1", new OpenApiInfo { Title = "RevaliInstruct.Api", Version = "v1" });
+
     c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
         Name = "Authorization",
@@ -52,12 +57,17 @@ builder.Services.AddSwaggerGen(c =>
         In = ParameterLocation.Header,
         Description = "JWT Authorization header using Bearer scheme"
     });
+
     c.AddSecurityRequirement(new OpenApiSecurityRequirement
     {
         {
             new OpenApiSecurityScheme
             {
-                Reference = new OpenApiReference { Type = ReferenceType.SecurityScheme, Id = "Bearer" }
+                Reference = new OpenApiReference
+                {
+                    Type = ReferenceType.SecurityScheme,
+                    Id = "Bearer"
+                }
             },
             Array.Empty<string>()
         }
@@ -76,15 +86,18 @@ builder.Services.AddCors(options =>
     });
 });
 
-// Configuratiebronnen laden (json + env vars na .env parsing)
+// Configuratiebronnen laden
 builder.Configuration
     .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
     .AddJsonFile($"appsettings.{builder.Environment.EnvironmentName}.json",
                  optional: true, reloadOnChange: true)
     .AddEnvironmentVariables();
 
-// JWT authenticatie configuratie (na config load zodat .env/ENV werken)
+// =====================
+// JWT Authenticatie
+// =====================
 var secret = builder.Configuration["Jwt:Secret"] ?? builder.Configuration["JWT__Secret"];
+
 var authBuilder = builder.Services.AddAuthentication(options =>
 {
     options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
@@ -104,24 +117,20 @@ if (!string.IsNullOrEmpty(secret))
             ValidateIssuerSigningKey = true,
             IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secret)),
             ClockSkew = TimeSpan.FromSeconds(30),
-
-            // Zorg dat role/name claims correct gemapt worden
             NameClaimType = System.Security.Claims.ClaimTypes.NameIdentifier,
             RoleClaimType = System.Security.Claims.ClaimTypes.Role
         };
 
-        // Logging / debugging hooks zodat je ziet waarom authenticatie faalt
-        options.Events = new Microsoft.AspNetCore.Authentication.JwtBearer.JwtBearerEvents
+        // Logging / debugging hooks
+        options.Events = new JwtBearerEvents
         {
             OnMessageReceived = ctx =>
             {
                 try
                 {
-                    // controleer zowel 'Authorization' als lowercase 'authorization'
                     var hdr = ctx.Request.Headers["Authorization"].FirstOrDefault()
                               ?? ctx.Request.Headers["authorization"].FirstOrDefault();
 
-                    // ook probeer access_token query fallback (bijv. signalr / testing)
                     if (string.IsNullOrWhiteSpace(hdr))
                     {
                         var q = ctx.Request.Query["access_token"].FirstOrDefault();
@@ -145,6 +154,7 @@ if (!string.IsNullOrEmpty(secret))
                 {
                     Console.WriteLine("OnMessageReceived error: " + ex.Message);
                 }
+
                 return Task.CompletedTask;
             },
             OnTokenValidated = ctx =>
@@ -167,7 +177,9 @@ else
     Console.WriteLine("JWT secret is leeg — JWT validatie wordt overgeslagen in deze sessie.");
 }
 
-// Database connectiestring samenstellen (fallback naar environment variabelen)
+// =====================
+// Database connectie
+// =====================
 var conn = builder.Configuration.GetConnectionString("DefaultConnection");
 if (string.IsNullOrEmpty(conn))
 {
@@ -194,30 +206,31 @@ else
     Console.WriteLine("Geen DefaultConnection gevonden");
 }
 
+// =====================
+// App builden
+// =====================
 var app = builder.Build();
 
-// unieke server instance id om restarts te detecteren (verandert bij elke run)
+// Unieke server instance id voor debugging
 var serverInstanceId = Guid.NewGuid().ToString();
 Console.WriteLine($"Server instance id: {serverInstanceId}");
 
-// Middleware om X-Server-Instance header toe te voegen aan alle responses
+// Header middleware
 app.Use(async (ctx, next) =>
 {
     ctx.Response.OnStarting(() =>
     {
-        // vervang Dictionary.Add (kan exception geven bij duplicate keys) door indexer/Append
         ctx.Response.Headers["X-Server-Instance"] = serverInstanceId;
-
-        // Expose-header: gebruik Append zodat we veilig meerdere waarden kunnen hebben zonder Add-exceptie
         ctx.Response.Headers.Append("Access-Control-Expose-Headers", "X-Server-Instance");
-
         return Task.CompletedTask;
     });
 
     await next();
 });
 
-// Optional automatic reset on startup (set env var RESET_DB=1)
+// =====================
+// Optionele reset via env
+// =====================
 if (Environment.GetEnvironmentVariable("RESET_DB") == "1")
 {
     using var scope = app.Services.CreateScope();
@@ -226,7 +239,9 @@ if (Environment.GetEnvironmentVariable("RESET_DB") == "1")
     Console.WriteLine("Database reset (RESET_DB=1).");
 }
 
-// START: ensure seeding runs automatically in Development so deleted users get re-seeded
+// =====================
+// Automatische seeding in Development
+// =====================
 if (app.Environment.IsDevelopment())
 {
     try
@@ -242,9 +257,10 @@ if (app.Environment.IsDevelopment())
         logger.LogWarning(ex, "Automatic seeding on startup failed.");
     }
 }
-// END: automatic dev seeding
 
-// Exception handling: gedetailleerd in Development, generiek in Production
+// =====================
+// Error handling
+// =====================
 if (app.Environment.IsDevelopment())
 {
     app.UseDeveloperExceptionPage();
@@ -259,6 +275,7 @@ else
             var ex = feature?.Error;
             var logger = ctx.RequestServices.GetRequiredService<ILogger<Program>>();
             if (ex != null) logger.LogError(ex, "Unhandled exception");
+
             ctx.Response.StatusCode = StatusCodes.Status500InternalServerError;
             ctx.Response.ContentType = "application/json";
             await ctx.Response.WriteAsJsonAsync(new { message = "Unexpected server error" });
@@ -266,23 +283,29 @@ else
     });
 }
 
+// =====================
+// Swagger in dev
+// =====================
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
 }
 
-// Zorg voor juiste volgorde van middleware
+// =====================
+// Pipeline volgorde
+// =====================
 app.UseRouting();
+
+app.UseCors(MyAllowedOrigins);
 
 app.UseAuthentication();
 
-// hierna de middleware die de SQL session context zet
+// middleware die SQL SESSION_CONTEXT zet
 app.UseMiddleware<SqlSessionContextMiddleware>();
 
 app.UseAuthorization();
 
-// Map attribute routed controllers
 app.MapControllers();
 
 app.Run();
