@@ -43,63 +43,27 @@
 <script setup>
 import { computed } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
+// Importeer de reactieve state en logout functie
+import { authState, logout as authLogout } from './services/AuthService';
 
 const router = useRouter();
 const route = useRoute();
 
-// Hulpje: is dit de loginpagina?
+// Controleer of we op de loginpagina zijn
 const isLoginPage = computed(() => {
   const name = route.name ?? '';
   const path = route.path ?? '';
   return name === 'Login' || path === '/login';
 });
 
-// Patients-link verbergen op loginpagina
 const showPatientsLink = computed(() => !isLoginPage.value);
 
-// Uit localStorage lezen of er een token is
-const isLogged = computed(() => {
-  try {
-    const token = localStorage.getItem('token');
-    return !!(token && token.trim().length > 0);
-  } catch {
-    return false;
-  }
-});
-
-// Username uit JWT-token halen (payload decoden)
-const currentUsername = computed(() => {
-  try {
-    const token = localStorage.getItem('token');
-    if (!token) return '';
-
-    const parts = token.split('.');
-    if (parts.length !== 3) return '';
-
-    // JWT base64url → normaal base64
-    const base64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
-    const json = atob(base64);
-    const payload = JSON.parse(json);
-
-    // Proberen een bruikbare username claim te pakken
-    return (
-      payload.username ||
-      payload.unique_name ||
-      payload.name ||
-      payload.sub ||
-      ''
-    );
-  } catch {
-    return '';
-  }
-});
+// Gebruik de reactieve waarden uit AuthService
+const isLogged = computed(() => authState.isLogged);
+const currentUsername = computed(() => authState.username);
 
 function handleLogout() {
-  try {
-    localStorage.removeItem('token');
-  } catch {
-    // ignore
-  }
+  authLogout(); // Gebruik de centrale logout logica
   router.push('/login');
 }
 </script>

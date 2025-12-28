@@ -1,7 +1,6 @@
-using System;
-using YourNamespace.Core.Models;
+using RevaliInstruct.Core.Entities;
 
-namespace YourNamespace.Api.Dtos
+namespace RevaliInstruct.Api.Dtos
 {
     public class PatientListItemDto
     {

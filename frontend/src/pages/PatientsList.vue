@@ -5,28 +5,12 @@
 
       <form class="patient-table-controls" @submit.prevent="load" novalidate>
         <label for="q" class="visually-hidden">Zoek op naam</label>
-        <input
-          id="q"
-          name="q"
-          v-model="q"
-          type="text"
-          placeholder="🔍 Zoek op naam..."
-          autocomplete="name"
-        />
+        <input id="q" name="q" v-model="q" type="text" placeholder="🔍 Zoek op naam..." autocomplete="name" />
 
         <label for="status" class="visually-hidden">Status filter</label>
-        <select
-          id="status"
-          name="status"
-          v-model="status"
-          autocomplete="off"
-        >
+        <select id="status" name="status" v-model="status" autocomplete="off">
           <option value="">Alle statussen</option>
-          <option
-            v-for="opt in statusOptions"
-            :key="opt.value"
-            :value="opt.value"
-          >
+          <option v-for="opt in statusOptions" :key="opt.value" :value="opt.value">
             {{ opt.label }}
           </option>
         </select>
@@ -53,9 +37,7 @@
             <td><strong>{{ p.firstName }} {{ p.lastName }}</strong></td>
             <td>{{ formatDate(p.startDate) }}</td>
             <td>
-              <span
-                :class="['status-badge', getStatusClass(p.status)]"
-              >
+              <span :class="['status-badge', getStatusClass(p.status)]">
                 {{ displayStatus(p.status) }}
               </span>
             </td>
@@ -67,7 +49,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { getPatients } from '../api/patients'
 
@@ -78,12 +60,11 @@ const error = ref('')
 const q = ref('')
 const status = ref('')
 
-// waarden hier zijn de enum-strings van de backend
 const statusOptions = [
   { value: 'IntakePlanned', label: 'Intake gepland' },
-  { value: 'Active',        label: 'Actief' },
-  { value: 'Completed',     label: 'Afgerond' },
-  { value: 'OnHold',        label: 'On hold' },
+  { value: 'Active', label: 'Actief' },
+  { value: 'Completed', label: 'Afgerond' },
+  { value: 'OnHold', label: 'On hold' },
 ]
 
 const formatDate = (d) =>
@@ -111,32 +92,39 @@ const STATUS_CLASSES = {
   OnHold: 'status-hold',
 }
 
-const displayStatus = (status) => {
-  return STATUS_LABELS[String(status)] || '-'
-}
+const displayStatus = (status) => STATUS_LABELS[String(status)] || '-'
+const getStatusClass = (status) => STATUS_CLASSES[String(status)] || 'status-default'
 
-const getStatusClass = (status) => {
-  return STATUS_CLASSES[String(status)] || 'status-default'
-}
+let debounceTimeout = null;
+
+watch(q, (newValue) => {
+  clearTimeout(debounceTimeout);
+  debounceTimeout = setTimeout(() => {
+    load();
+  }, 300);
+});
+
+watch(status, () => {
+  load();
+});
 
 const load = async () => {
   loading.value = true
   error.value = ''
   try {
     items.value = await getPatients({
-      q: q.value?.trim() || undefined,
-      status: status.value || undefined, // nu zijn dit enum-waarden
+      // Match de key met de backend: 'searchTerm' i.p.v. 'q'
+      searchTerm: q.value?.trim() || undefined,
+      status: status.value || undefined,
     })
   } catch (e) {
-    error.value =
-      e?.response?.data?.message || e.message || 'Laden mislukt'
+    error.value = e?.response?.data?.message || e.message || 'Laden mislukt'
   } finally {
     loading.value = false
   }
 }
 
 const goDetail = (id) => router.push(`/patients/${id}`)
-
 onMounted(load)
 </script>
 

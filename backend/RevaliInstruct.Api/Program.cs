@@ -96,7 +96,14 @@ builder.Configuration
 // =====================
 // JWT Authenticatie
 // =====================
-var secret = builder.Configuration["Jwt:Secret"] ?? builder.Configuration["JWT__Secret"];
+var secret = builder.Configuration["Jwt:Key"] 
+             ?? builder.Configuration["Jwt:Secret"] 
+             ?? builder.Configuration["JWT__Secret"] 
+             ?? Environment.GetEnvironmentVariable("JWT_SECRET");
+
+if (string.IsNullOrEmpty(secret)) {
+    Console.WriteLine("FOUT: Geen JWT Secret gevonden!");
+}
 
 var authBuilder = builder.Services.AddAuthentication(options =>
 {
@@ -119,7 +126,13 @@ if (!string.IsNullOrEmpty(secret))
             ClockSkew = TimeSpan.FromSeconds(30),
             NameClaimType = System.Security.Claims.ClaimTypes.NameIdentifier,
             RoleClaimType = System.Security.Claims.ClaimTypes.Role
+
         };
+
+        if (string.IsNullOrEmpty(secret))
+        {
+            Console.WriteLine("WAARSCHUWING: JWT Secret is leeg! Controleer je .env of appsettings.json.");
+        }
 
         // Logging / debugging hooks
         options.Events = new JwtBearerEvents

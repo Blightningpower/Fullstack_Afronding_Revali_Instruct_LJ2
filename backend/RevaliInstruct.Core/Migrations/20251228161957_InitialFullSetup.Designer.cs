@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using RevaliInstruct.Core.Data;
 
@@ -11,9 +12,11 @@ using RevaliInstruct.Core.Data;
 namespace RevaliInstruct.Core.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251228161957_InitialFullSetup")]
+    partial class InitialFullSetup
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -53,8 +56,6 @@ namespace RevaliInstruct.Core.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("PatientId");
-
                     b.ToTable("AccessoryAdvices");
 
                     b.HasData(
@@ -92,8 +93,6 @@ namespace RevaliInstruct.Core.Migrations
                         .HasColumnType("int");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("PatientId");
 
                     b.ToTable("ActivityLogs");
                 });
@@ -255,8 +254,6 @@ namespace RevaliInstruct.Core.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("ExerciseId");
-
-                    b.HasIndex("PatientId");
 
                     b.ToTable("ExerciseAssignments");
                 });
@@ -945,24 +942,6 @@ namespace RevaliInstruct.Core.Migrations
                         });
                 });
 
-            modelBuilder.Entity("RevaliInstruct.Core.Entities.AccessoryAdvice", b =>
-                {
-                    b.HasOne("RevaliInstruct.Core.Entities.Patient", null)
-                        .WithMany("AccessoryAdvices")
-                        .HasForeignKey("PatientId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-                });
-
-            modelBuilder.Entity("RevaliInstruct.Core.Entities.ActivityLogEntry", b =>
-                {
-                    b.HasOne("RevaliInstruct.Core.Entities.Patient", null)
-                        .WithMany("ActivityLogs")
-                        .HasForeignKey("PatientId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-                });
-
             modelBuilder.Entity("RevaliInstruct.Core.Entities.Appointment", b =>
                 {
                     b.HasOne("RevaliInstruct.Core.Entities.Patient", null)
@@ -978,12 +957,6 @@ namespace RevaliInstruct.Core.Migrations
                         .WithMany()
                         .HasForeignKey("ExerciseId")
                         .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("RevaliInstruct.Core.Entities.Patient", null)
-                        .WithMany("Exercises")
-                        .HasForeignKey("PatientId")
-                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.Navigation("Exercise");
@@ -1031,13 +1004,7 @@ namespace RevaliInstruct.Core.Migrations
 
             modelBuilder.Entity("RevaliInstruct.Core.Entities.Patient", b =>
                 {
-                    b.Navigation("AccessoryAdvices");
-
-                    b.Navigation("ActivityLogs");
-
                     b.Navigation("Appointments");
-
-                    b.Navigation("Exercises");
 
                     b.Navigation("Intake");
 

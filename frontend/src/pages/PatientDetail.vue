@@ -27,7 +27,7 @@
           <div class="info-item">
             <span class="info-label">🎂 Geboortedatum</span>
             <span class="info-value">
-              {{ patient?.dateOfBirth ? formatDateLong(patient.dateOfBirth) : 'Niet ingevuld' }}
+              {{ patient.dateOfBirth ? formatDateLong(patient.dateOfBirth) : 'Niet ingevuld' }}
             </span>
           </div>
           <div class="info-item">
@@ -74,10 +74,7 @@
                   <span v-if="ex.repetitions"> – {{ ex.repetitions }}x</span>
                   <span v-if="ex.sets"> in {{ ex.sets }} sets</span>
                   <span v-if="ex.frequency"> ({{ ex.frequency }})</span>
-                  <span
-                    class="pill"
-                    :class="ex.clientCheckedOff ? 'pill-ok' : 'pill-open'"
-                  >
+                  <span class="pill" :class="ex.clientCheckedOff ? 'pill-ok' : 'pill-open'">
                     {{ ex.clientCheckedOff ? 'Afgevinkt door cliënt' : 'Nog open' }}
                   </span>
                 </span>
@@ -91,7 +88,7 @@
             <ul class="dossier-list">
               <li v-for="e in painEntries" :key="e.id" class="section-item">
                 <span class="dossier-item-title">
-                  {{ formatDateLong(e.recordedAtUtc) }} – score {{ e.score }}/10
+                  {{ formatDateLong(e.timestamp) }} – score {{ e.score }}/10
                 </span>
                 <span class="dossier-item-meta">
                   <span v-if="e.location">({{ e.location }}) </span>
@@ -107,7 +104,7 @@
             <ul class="dossier-list">
               <li v-for="l in activityLogs" :key="l.id" class="section-item">
                 <span class="dossier-item-title">
-                  {{ formatDateLong(l.loggedAtUtc) }} – {{ l.activity }}
+                  {{ formatDateLong(l.timestamp) }} – {{ l.activity }}
                 </span>
                 <span class="dossier-item-meta" v-if="l.details">
                   – {{ l.details }}
@@ -136,7 +133,7 @@
             <ul class="dossier-list">
               <li v-for="a in appointments" :key="a.id" class="section-item">
                 <span class="dossier-item-title">
-                  {{ formatDateLong(a.startUtc) }} – {{ a.type }}
+                  {{ formatDateLong(a.appointmentDateTime) }} – {{ a.type }}
                 </span>
                 <span class="dossier-item-meta">
                   (status: {{ a.status }}, duur: {{ a.duration }})
