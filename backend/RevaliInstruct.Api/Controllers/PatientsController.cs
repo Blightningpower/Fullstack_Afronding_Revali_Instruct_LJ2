@@ -39,8 +39,7 @@ namespace RevaliInstruct.Api.Controllers
                 // Zoek in voornaam, achternaam of de gecombineerde naam
                 query = query.Where(p =>
                     p.FirstName.ToLower().Contains(term) ||
-                    p.LastName.ToLower().Contains(term) ||
-                    (p.FirstName + " " + p.LastName).ToLower().Contains(term));
+                    p.LastName.ToLower().Contains(term));
             }
 
             if (!string.IsNullOrWhiteSpace(status) && status != "Alle statussen")
@@ -52,7 +51,8 @@ namespace RevaliInstruct.Api.Controllers
                 .Select(p => new PatientListItemDto
                 {
                     Id = p.Id,
-                    FullName = p.FirstName + " " + p.LastName,
+                    FirstName = p.FirstName,
+                    LastName = p.LastName,
                     StartDate = p.StartDate,
                     Status = p.Status,
                     StatusLabel = p.Status.ToString()
@@ -74,10 +74,12 @@ namespace RevaliInstruct.Api.Controllers
             }
 
             var patient = await _context.Patients
+                .Include(p => p.ReferringDoctor)
                 .Include(p => p.Exercises)
                     .ThenInclude(e => e.Exercise)
                 .Include(p => p.PainEntries)
                 .Include(p => p.ActivityLogs)
+                .Include(p => p.Medications)
                 .Include(p => p.AccessoryAdvices)
                 .Include(p => p.Appointments)
                 .FirstOrDefaultAsync(p => p.Id == id && p.AssignedDoctorUserId == currentUserId);

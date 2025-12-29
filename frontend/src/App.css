@@ -23,7 +23,7 @@ header, .navbar {
 
 /* Container centreren */
 .container, main {
-    max-width: 1100px;
+    max-width: 1200px;
     margin: 0 auto;
     padding: 48px 32px;
     background: transparent;
@@ -236,7 +236,6 @@ button:active, input[type="submit"]:active {
     box-shadow: 0 2px 20px rgba(59,179,206,0.10);
     padding: 40px 36px;
     margin: 0 auto;
-    max-width: 800px;
     border: none;
 }
 

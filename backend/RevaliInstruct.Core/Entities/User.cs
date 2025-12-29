@@ -8,7 +8,6 @@ namespace RevaliInstruct.Core.Entities
         public string Role { get; set; } = "User";
         public string FirstName { get; set; } = string.Empty;
         public string LastName { get; set; } = string.Empty;
-        public string FullName => $"{FirstName} {LastName}"; 
 
         public int? OrganisatieId { get; set; }
         public ICollection<Patient> Patients { get; set; } = new List<Patient>();

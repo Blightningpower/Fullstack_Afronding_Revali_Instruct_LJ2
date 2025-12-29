@@ -93,7 +93,6 @@ namespace RevaliInstruct.Api.Controllers
             {
                 new Claim(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
                 new Claim(JwtRegisteredClaimNames.UniqueName, user.Username ?? string.Empty),
-                new Claim(ClaimTypes.Name, user.FullName ?? user.Username ?? string.Empty),
                 new Claim(ClaimTypes.Role, user.Role ?? string.Empty),
                 new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
             };

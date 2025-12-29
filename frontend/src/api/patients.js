@@ -10,19 +10,13 @@ function normalizePatientsResponse(payload) {
   else arr = Object.values(payload).find(v => Array.isArray(v)) || [];
 
   return arr.map(p => {
-    // Pak de gecombineerde naam van de API (FullName)
-    const combinedName = p.fullName ?? p.FullName ?? '';
-    
-    // Splits de naam voor de frontend velden firstName/lastName (optioneel)
-    const nameParts = combinedName.split(' ');
-    const fName = nameParts[0] || '';
-    const lName = nameParts.slice(1).join(' ') || '';
+    const fName = p.firstName ?? p.FirstName ?? '';
+    const lName = p.lastName ?? p.LastName ?? '';
 
     return {
       id: p.id ?? p.Id ?? null,
-      firstName: fName, // Nu gevuld vanuit FullName
+      firstName: fName,
       lastName: lName,
-      name: combinedName.trim() || 'Onbekende patiënt',
       status: p.status ?? p.Status ?? 0,
       startDate: p.startDate ?? p.StartDate ?? null,
       _raw: p 
