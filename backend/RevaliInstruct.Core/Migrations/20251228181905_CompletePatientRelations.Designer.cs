@@ -298,7 +298,7 @@ namespace RevaliInstruct.Core.Migrations
                     b.HasIndex("PatientId")
                         .IsUnique();
 
-                    b.ToTable("Intakes");
+                    b.ToTable("IntakeRecords");
 
                     b.HasData(
                         new

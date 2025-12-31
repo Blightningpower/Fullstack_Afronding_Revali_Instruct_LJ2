@@ -8,7 +8,8 @@ body {
 }
 
 /* Header */
-header, .navbar {
+header,
+.navbar {
     background: #3bb3ce;
     color: #fff;
     padding: 24px 48px;
@@ -17,12 +18,13 @@ header, .navbar {
     letter-spacing: 1px;
     margin-bottom: 0;
     border-radius: 0;
-    box-shadow: 0 2px 12px rgba(59,179,206,0.15);
+    box-shadow: 0 2px 12px rgba(59, 179, 206, 0.15);
     border: none;
 }
 
 /* Container centreren */
-.container, main {
+.container,
+main {
     max-width: 1200px;
     margin: 0 auto;
     padding: 48px 32px;
@@ -41,18 +43,25 @@ h2 {
     letter-spacing: 0.5px;
 }
 
+/* Knoppen Algemeen */
+button,
+input[type="submit"] {
+    cursor: pointer;
+}
+
 /* Card voor patient details */
 .patient-table-card {
     background: #fff;
     border-radius: 16px;
-    box-shadow: 0 2px 20px rgba(59,179,206,0.10);
+    box-shadow: 0 2px 20px rgba(59, 179, 206, 0.10);
     padding: 40px 32px;
     margin: 0 auto;
     border: none;
     transition: box-shadow 0.2s;
 }
+
 .patient-table-card:hover {
-    box-shadow: 0 8px 32px rgba(59,179,206,0.15);
+    box-shadow: 0 8px 32px rgba(59, 179, 206, 0.15);
 }
 
 /* Controls boven de tabel */
@@ -64,7 +73,7 @@ h2 {
     flex-wrap: wrap;
 }
 
-.patient-table-controls input[type="text"], 
+.patient-table-controls input[type="text"],
 .patient-table-controls select {
     padding: 12px 16px;
     border: 2px solid #d2f0f7;
@@ -76,10 +85,10 @@ h2 {
     color: #234;
 }
 
-.patient-table-controls input[type="text"]:focus, 
+.patient-table-controls input[type="text"]:focus,
 .patient-table-controls select:focus {
     border: 2px solid #3bb3ce;
-    box-shadow: 0 0 0 3px rgba(59,179,206,0.10);
+    box-shadow: 0 0 0 3px rgba(59, 179, 206, 0.10);
 }
 
 .patient-table-controls button {
@@ -92,12 +101,12 @@ h2 {
     font-weight: 600;
     cursor: pointer;
     transition: background 0.18s, box-shadow 0.18s, transform 0.15s;
-    box-shadow: 0 2px 8px rgba(59,179,206,0.15);
+    box-shadow: 0 2px 8px rgba(59, 179, 206, 0.15);
 }
 
 .patient-table-controls button:hover {
     background: linear-gradient(90deg, #2a7ca3 70%, #3bb3ce 100%);
-    box-shadow: 0 4px 16px rgba(59,179,206,0.20);
+    box-shadow: 0 4px 16px rgba(59, 179, 206, 0.20);
     transform: translateY(-2px);
 }
 
@@ -116,7 +125,8 @@ table {
     border: none;
 }
 
-th, td {
+th,
+td {
     padding: 20px 24px;
     text-align: left;
     vertical-align: middle;
@@ -148,7 +158,8 @@ tr:hover {
 }
 
 /* Zoekveld en filter styling */
-input[type="text"], select {
+input[type="text"],
+select {
     padding: 10px 14px;
     border: 1.5px solid #bfe7ef;
     border-radius: 8px;
@@ -156,17 +167,19 @@ input[type="text"], select {
     font-size: 1rem;
     background: #fafdff;
     margin-bottom: 0;
-    box-shadow: 0 1px 3px rgba(59,179,206,0.04);
+    box-shadow: 0 1px 3px rgba(59, 179, 206, 0.04);
     transition: border 0.2s, box-shadow 0.2s;
     color: #234;
 }
 
-input[type="text"]:focus, select:focus {
+input[type="text"]:focus,
+select:focus {
     border: 2px solid #3bb3ce;
-    box-shadow: 0 2px 8px rgba(59,179,206,0.10);
+    box-shadow: 0 2px 8px rgba(59, 179, 206, 0.10);
 }
 
-button, input[type="submit"] {
+button,
+input[type="submit"] {
     background: linear-gradient(90deg, #3bb3ce 70%, #4ee3c1 100%);
     color: #fff;
     border: none;
@@ -177,11 +190,12 @@ button, input[type="submit"] {
     letter-spacing: 0.5px;
     margin-top: 0;
     margin-bottom: 0;
-    box-shadow: 0 1px 3px rgba(59,179,206,0.04);
+    box-shadow: 0 1px 3px rgba(59, 179, 206, 0.04);
     transition: background 0.18s, box-shadow 0.18s;
 }
 
-button:active, input[type="submit"]:active {
+button:active,
+input[type="submit"]:active {
     background: #2a7ca3;
 }
 
@@ -233,7 +247,7 @@ button:active, input[type="submit"]:active {
 .patient-detail-card {
     background: #fff;
     border-radius: 16px;
-    box-shadow: 0 2px 20px rgba(59,179,206,0.10);
+    box-shadow: 0 2px 20px rgba(59, 179, 206, 0.10);
     padding: 40px 36px;
     margin: 0 auto;
     border: none;
@@ -259,7 +273,7 @@ button:active, input[type="submit"]:active {
     justify-content: center;
     font-size: 2.2rem;
     font-weight: 700;
-    box-shadow: 0 4px 16px rgba(59,179,206,0.25);
+    box-shadow: 0 4px 16px rgba(59, 179, 206, 0.25);
 }
 
 .patient-title {
@@ -290,7 +304,7 @@ button:active, input[type="submit"]:active {
 
 .info-item:hover {
     border-color: #d2f0f7;
-    box-shadow: 0 2px 8px rgba(59,179,206,0.08);
+    box-shadow: 0 2px 8px rgba(59, 179, 206, 0.08);
 }
 
 .info-label {
@@ -325,7 +339,8 @@ button:active, input[type="submit"]:active {
 }
 
 /* Loading en error states */
-.loading-state, .error-state {
+.loading-state,
+.error-state {
     text-align: center;
     padding: 32px;
     font-size: 1.1rem;
@@ -344,26 +359,36 @@ button:active, input[type="submit"]:active {
 
 /* Responsive */
 @media (max-width: 700px) {
-    .container, main {
+
+    .container,
+    main {
         padding: 24px 12px;
     }
-    .patient-table-card, .patient-detail-card {
+
+    .patient-table-card,
+    .patient-detail-card {
         padding: 24px 16px;
     }
-    th, td {
+
+    th,
+    td {
         padding: 12px 8px;
     }
+
     .patient-table-controls {
         flex-direction: column;
         gap: 8px;
     }
+
     h2 {
         font-size: 1.2rem;
     }
+
     .patient-header {
         flex-direction: column;
         text-align: center;
     }
+
     .patient-info-grid {
         grid-template-columns: 1fr;
     }
@@ -371,10 +396,21 @@ button:active, input[type="submit"]:active {
 
 /* Extra: animatie bij laden */
 @keyframes fadeInUp {
-    from { opacity: 0; transform: translateY(16px);}
-    to { opacity: 1; transform: translateY(0);}
+    from {
+        opacity: 0;
+        transform: translateY(16px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
-.container, .patient-table-card, table, .empty-state {
+
+.container,
+.patient-table-card,
+table,
+.empty-state {
     animation: fadeInUp 0.5s;
 }
 
@@ -394,7 +430,7 @@ button:active, input[type="submit"]:active {
     border-radius: 12px;
     border: 2px solid #eaf6fb;
     padding: 20px 22px;
-    box-shadow: 0 2px 8px rgba(59,179,206,0.06);
+    box-shadow: 0 2px 8px rgba(59, 179, 206, 0.06);
     display: flex;
     flex-direction: column;
     gap: 8px;

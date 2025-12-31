@@ -1,10 +1,10 @@
-using System.Security.Claims;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using RevaliInstruct.Core.Data;
-using RevaliInstruct.Api.Dtos;
 using Microsoft.AspNetCore.Authorization;
 using RevaliInstruct.Core.Entities;
+using RevaliInstruct.Api.Dtos;
+using System.Linq;
 
 namespace RevaliInstruct.Api.Controllers
 {
@@ -82,11 +82,71 @@ namespace RevaliInstruct.Api.Controllers
                 .Include(p => p.Medications)
                 .Include(p => p.AccessoryAdvices)
                 .Include(p => p.Appointments)
+                .Include(p => p.IntakeRecords)
+                .Include(p => p.PatientNotes)
                 .FirstOrDefaultAsync(p => p.Id == id && p.AssignedDoctorUserId == currentUserId);
 
             if (patient == null) return NotFound();
 
             return Ok(patient);
+        }
+
+        [HttpPost("{id}/intake")]
+        public async Task<IActionResult> CreateIntake(int id, [FromBody] IntakeDto dto)
+        {
+            var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (!int.TryParse(userIdClaim, out int currentUserId)) return Unauthorized();
+
+            var patient = await _context.Patients
+                .Include(p => p.IntakeRecords)
+                .FirstOrDefaultAsync(p => p.Id == id && p.AssignedDoctorUserId == currentUserId);
+
+            if (patient == null) return NotFound("Patiënt niet gevonden.");
+            if (patient.IntakeRecords != null && patient.IntakeRecords.Any())
+            {
+                return BadRequest("Er bestaat al een intakeverslag voor deze patiënt.");
+            }
+
+            var intake = new IntakeRecord
+            {
+                PatientId = id,
+                DoctorId = currentUserId,
+                Diagnosis = dto.Diagnosis,
+                Severity = dto.Severity,
+                Goals = dto.Goals,
+                Date = DateTime.Now
+            };
+
+            _context.IntakeRecords.Add(intake);
+            _context.AuditLogs.Add(new AuditLog
+            {
+                UserId = currentUserId,
+                Action = "Intake Geregistreerd",
+                Timestamp = DateTime.Now,
+                Details = $"Patiënt ID: {id}"
+            });
+
+            await _context.SaveChangesAsync();
+            return Ok(intake);
+        }
+
+        [HttpPost("{id}/notes")]
+        public async Task<IActionResult> AddNote(int id, [FromBody] PatientNote noteDto)
+        {
+            var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (!int.TryParse(userIdClaim, out int currentUserId)) return Unauthorized();
+
+            var note = new PatientNote
+            {
+                PatientId = id,
+                AuthorUserId = currentUserId,
+                Timestamp = DateTime.Now,
+                Content = noteDto.Content
+            };
+
+            _context.PatientNotes.Add(note);
+            await _context.SaveChangesAsync();
+            return Ok(note);
         }
     }
 }

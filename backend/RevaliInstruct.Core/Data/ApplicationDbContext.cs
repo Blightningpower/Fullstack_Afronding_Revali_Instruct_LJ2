@@ -18,6 +18,7 @@ namespace RevaliInstruct.Core.Data
         public DbSet<Appointment> Appointments => Set<Appointment>();
         public DbSet<PatientNote> PatientNotes => Set<PatientNote>();
         public DbSet<AccessoryAdvice> AccessoryAdvices => Set<AccessoryAdvice>();
+        public DbSet<IntakeRecord> IntakeRecords => Set<IntakeRecord>();
         public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -284,6 +285,44 @@ namespace RevaliInstruct.Core.Data
                 new Appointment { Id = 18, PatientId = 5, DoctorId = 6, AppointmentDateTime = new DateTime(2025, 3, 22, 10, 0, 0), DurationMinutes = 45, Type = "Controle", Status = "Gepland" },
                 new Appointment { Id = 19, PatientId = 6, DoctorId = 5, AppointmentDateTime = new DateTime(2025, 2, 10, 14, 0, 0), DurationMinutes = 60, Type = "Intake", Status = "Afgerond" },
                 new Appointment { Id = 20, PatientId = 6, DoctorId = 5, AppointmentDateTime = new DateTime(2025, 3, 3, 15, 0, 0), DurationMinutes = 45, Type = "Controle", Status = "Gepland" }
+            );
+
+            // 10. Intakegesprekken
+            modelBuilder.Entity<IntakeRecord>().HasData(
+                new IntakeRecord { Id = 1, PatientId = 1, DoctorId = 5, Diagnosis = "Gescheurde kruisbanden (ACL)", Severity = "Ernstig", Goals = "Volledig herstel kniefunctie; wondgenezing; pijnmanager", Date = new DateTime(2025, 1, 10) },
+                new IntakeRecord { Id = 2, PatientId = 2, DoctorId = 6, Diagnosis = "Hernia L5-S1", Severity = "Matig", Goals = "Pijnreductie; mobiliteit; terugkeer naar werk", Date = new DateTime(2025, 2, 1) },
+                new IntakeRecord { Id = 3, PatientId = 3, DoctorId = 5, Diagnosis = "Schouder impingement", Severity = "Licht tot matig", Goals = "Pijnvrij bewegen; krachtopbouw", Date = new DateTime(2025, 1, 15) },
+                new IntakeRecord { Id = 4, PatientId = 4, DoctorId = 7, Diagnosis = "Enkelverstuiking graad 2", Severity = "Matig", Goals = "Stabiliteit; belasting opbouw", Date = new DateTime(2025, 2, 5) },
+                new IntakeRecord { Id = 5, PatientId = 5, DoctorId = 6, Diagnosis = "Nekhernia C5-C6", Severity = "Ernstig", Goals = "Nekmobiliteit; zenuwherstel; pijncontrole", Date = new DateTime(2025, 3, 1) },
+                new IntakeRecord { Id = 6, PatientId = 6, DoctorId = 5, Diagnosis = "Chronische rugpijn", Severity = "Matig", Goals = "Activatie; coping mechanismen; functiebehoud", Date = new DateTime(2025, 2, 10) },
+                new IntakeRecord { Id = 7, PatientId = 7, DoctorId = 7, Diagnosis = "Gescheurde meniscus", Severity = "Ernstig", Goals = "Volledig herstel kniefunctie; pijnvrij sporten", Date = new DateTime(2025, 3, 5) },
+                new IntakeRecord { Id = 8, PatientId = 8, DoctorId = 6, Diagnosis = "Fibromyalgie", Severity = "Chronisch", Goals = "Pijnmanagement; energieniveau; levenskwaliteit", Date = new DateTime(2025, 4, 1) },
+                new IntakeRecord { Id = 9, PatientId = 9, DoctorId = 5, Diagnosis = "Carpale tunnelsyndroom", Severity = "Licht", Goals = "Pijnreductie; grijpkracht herstel", Date = new DateTime(2025, 3, 10) },
+                new IntakeRecord { Id = 10, PatientId = 10, DoctorId = 7, Diagnosis = "Knieartrose", Severity = "Matig", Goals = "Mobiliteit; pijnvermindering; spierversterking", Date = new DateTime(2025, 4, 5) }
+            );
+
+            // 11. Dossiernotities
+            modelBuilder.Entity<PatientNote>().HasData(
+                new PatientNote { Id = 1, PatientId = 1, AuthorUserId = 3, Timestamp = new DateTime(2025, 1, 9, 16, 0, 0), Content = "Wondinfectie arm lijkt te verbeteren na start antibiotica." },
+                new PatientNote { Id = 2, PatientId = 1, AuthorUserId = 5, Timestamp = new DateTime(2025, 1, 10, 15, 0, 0), Content = "Patiënt is gemotiveerd" },
+                new PatientNote { Id = 3, PatientId = 1, AuthorUserId = 3, Timestamp = new DateTime(2025, 1, 20, 10, 0, 0), Content = "Wondgenezing goed" },
+                new PatientNote { Id = 4, PatientId = 1, AuthorUserId = 5, Timestamp = new DateTime(2025, 1, 31, 10, 45, 0), Content = "Voortgang positief" },
+                new PatientNote { Id = 5, PatientId = 2, AuthorUserId = 4, Timestamp = new DateTime(2025, 2, 5, 09, 30, 0), Content = "Patiënt klaagt over zenuwpijn" },
+                new PatientNote { Id = 6, PatientId = 2, AuthorUserId = 6, Timestamp = new DateTime(2025, 2, 6, 11, 0, 0), Content = "Zenuwpijn besproken" },
+                new PatientNote { Id = 7, PatientId = 3, AuthorUserId = 3, Timestamp = new DateTime(2025, 1, 17, 14, 30, 0), Content = "Schouderklachten lijken te stabiliseren." },
+                new PatientNote { Id = 8, PatientId = 3, AuthorUserId = 5, Timestamp = new DateTime(2025, 1, 17, 17, 0, 0), Content = "Oefenplan opgesteld voor schouder mobiliteit." },
+                new PatientNote { Id = 9, PatientId = 4, AuthorUserId = 4, Timestamp = new DateTime(2025, 2, 7, 10, 30, 0), Content = "Enkel nog steeds gezwollen" },
+                new PatientNote { Id = 10, PatientId = 4, AuthorUserId = 7, Timestamp = new DateTime(2025, 2, 7, 11, 30, 0), Content = "Start oefenplan voor enkelstabiliteit." },
+                new PatientNote { Id = 11, PatientId = 5, AuthorUserId = 3, Timestamp = new DateTime(2025, 3, 3, 10, 0, 0), Content = "Nekpijn nog ernstig" },
+                new PatientNote { Id = 12, PatientId = 5, AuthorUserId = 6, Timestamp = new DateTime(2025, 3, 3, 10, 45, 0), Content = "Intake afgerond" },
+                new PatientNote { Id = 13, PatientId = 6, AuthorUserId = 4, Timestamp = new DateTime(2025, 2, 12, 14, 0, 0), Content = "Chronische rugpijn besproken" },
+                new PatientNote { Id = 14, PatientId = 6, AuthorUserId = 5, Timestamp = new DateTime(2025, 2, 12, 15, 0, 0), Content = "Activatieprogramma gestart voor rugpijn." },
+                new PatientNote { Id = 15, PatientId = 7, AuthorUserId = 3, Timestamp = new DateTime(2025, 3, 7, 10, 0, 0), Content = "Meniscus scheur" },
+                new PatientNote { Id = 16, PatientId = 7, AuthorUserId = 7, Timestamp = new DateTime(2025, 3, 7, 11, 0, 0), Content = "Focus op herstel kniefunctie voor sportterugkeer." },
+                new PatientNote { Id = 17, PatientId = 8, AuthorUserId = 4, Timestamp = new DateTime(2025, 4, 3, 10, 0, 0), Content = "Fibromyalgie patiënt" },
+                new PatientNote { Id = 18, PatientId = 8, AuthorUserId = 6, Timestamp = new DateTime(2025, 4, 3, 11, 0, 0), Content = "Behandelplan gericht op energiebeheer en pijnreductie." },
+                new PatientNote { Id = 19, PatientId = 9, AuthorUserId = 3, Timestamp = new DateTime(2025, 3, 12, 10, 0, 0), Content = "CT-scan uitslag besproken" },
+                new PatientNote { Id = 20, PatientId = 9, AuthorUserId = 5, Timestamp = new DateTime(2025, 3, 12, 11, 0, 0), Content = "Start fysiotherapie voor pols en hand." }
             );
         }
     }

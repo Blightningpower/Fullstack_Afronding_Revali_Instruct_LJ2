@@ -178,7 +178,7 @@ namespace RevaliInstruct.Core.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "Intakes",
+                name: "IntakeRecords",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "int", nullable: false)
@@ -192,9 +192,9 @@ namespace RevaliInstruct.Core.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_Intakes", x => x.Id);
+                    table.PrimaryKey("PK_IntakeRecords", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_Intakes_Patients_PatientId",
+                        name: "FK_IntakeRecords_Patients_PatientId",
                         column: x => x.PatientId,
                         principalTable: "Patients",
                         principalColumn: "Id",
@@ -335,7 +335,7 @@ namespace RevaliInstruct.Core.Migrations
                 });
 
             migrationBuilder.InsertData(
-                table: "Intakes",
+                table: "IntakeRecords",
                 columns: new[] { "Id", "Date", "Diagnosis", "DoctorId", "Goals", "PatientId", "Severity" },
                 values: new object[,]
                 {
@@ -374,8 +374,8 @@ namespace RevaliInstruct.Core.Migrations
                 column: "ExerciseId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_Intakes_PatientId",
-                table: "Intakes",
+                name: "IX_IntakeRecords_PatientId",
+                table: "IntakeRecords",
                 column: "PatientId",
                 unique: true);
 
@@ -420,7 +420,7 @@ namespace RevaliInstruct.Core.Migrations
                 name: "ExerciseAssignments");
 
             migrationBuilder.DropTable(
-                name: "Intakes");
+                name: "IntakeRecords");
 
             migrationBuilder.DropTable(
                 name: "InvoiceItems");

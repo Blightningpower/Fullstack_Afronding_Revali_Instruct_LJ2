@@ -61,6 +61,7 @@
 
         <!-- Dossier-blokken -->
         <div class="patient-dossier">
+
           <!-- Toegewezen oefeningen -->
           <section class="dossier-section">
             <h3 class="dossier-section-title">Toegewezen oefeningen</h3>
@@ -187,6 +188,54 @@
             <p v-else class="empty-text">Geen afspraken gepland of geweest.</p>
           </section>
 
+          <!-- Intakegesprekken -->
+          <section class="dossier-section">
+            <h3 class="dossier-section-title">📋 Intakeverslag</h3>
+
+            <div v-if="currentIntake" class="intake-report">
+              <div class="report-meta">Opgesteld op: {{ formatDateTime(currentIntake.date) }}</div>
+              <div class="report-grid">
+                <div class="report-item"><strong>Diagnose:</strong> {{ currentIntake.diagnosis }}</div>
+                <div class="report-item"><strong>Ernst:</strong> {{ currentIntake.severity }}</div>
+                <div class="report-item full-width"><strong>Behandeldoelen:</strong> {{ currentIntake.goals }}</div>
+              </div>
+
+              <div class="notes-container">
+                <h4>Aanvullende Notities</h4>
+                <ul class="notes-list" v-if="patientNotes.length">
+                  <li v-for="note in patientNotes" :key="note.id" class="note-item">
+                    <small>{{ formatDateTime(note.createdAt) }}</small>
+                    <p>{{ note.content }}</p>
+                  </li>
+                </ul>
+                <div class="add-note-box">
+                  <textarea v-model="newNoteContent" placeholder="Voeg een voortgangsnotitie toe..."></textarea>
+                  <button @click="saveNote" class="btn-small" :disabled="!newNoteContent">Notitie toevoegen</button>
+                </div>
+              </div>
+            </div>
+
+            <div v-else class="intake-form">
+              <div class="form-group">
+                <label>Diagnose</label>
+                <input v-model="newIntake.diagnosis" placeholder="Bijv. Gescheurde meniscus" />
+              </div>
+              <div class="form-group">
+                <label>Ernst van de blessure</label>
+                <select v-model="newIntake.severity">
+                  <option value="Licht">Licht</option>
+                  <option value="Matig">Matig</option>
+                  <option value="Ernstig">Ernstig</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Initiële behandeldoelen</label>
+                <textarea v-model="newIntake.goals" rows="3"></textarea>
+              </div>
+              <button @click="handleSaveIntake" class="save-button">Intake Definitief Opslaan</button>
+            </div>
+          </section>
+
         </div>
       </div>
     </div>
@@ -197,6 +246,7 @@
 import { ref, onMounted, computed } from 'vue'
 import { useRoute } from 'vue-router'
 import { getPatientDossier } from '../api/patients'
+import api from '../api/axios';
 
 const route = useRoute()
 const patient = ref(null)
@@ -346,6 +396,58 @@ const appointments = computed(() => {
     status: a.status ?? a.Status
   })).sort((a, b) => new Date(b.appointmentDateTime) - new Date(a.appointmentDateTime)); // Nieuwste bovenaan
 });
+
+const newIntake = ref({
+  diagnosis: '',
+  severity: 'Licht',
+  goals: ''
+});
+
+const handleSaveIntake = async () => {
+  if (!newIntake.value.diagnosis || !newIntake.value.goals) {
+    alert("Vul a.u.b. de diagnose en doelen in.");
+    return;
+  }
+
+  try {
+    await api.post(`/patients/${route.params.id}/intake`, newIntake.value);
+
+    alert("Intake succesvol opgeslagen!");
+    await load();
+  } catch (err) {
+    console.error("Fout details:", err.response?.data);
+    alert("Fout: " + (err.response?.status === 401 ? "Niet geautoriseerd" : "Server fout"));
+  }
+};
+
+const newNoteContent = ref('');
+
+const currentIntake = computed(() => {
+
+  const list = patient.value?.intakeRecords || patient.value?.IntakeRecords || [];
+  
+  return list.length > 0 ? list[0] : null;
+});
+
+const patientNotes = computed(() => {
+  const raw = normalizeArray(patient.value, 'patientNotes', 'PatientNotes');
+  return raw.map(n => ({
+    id: n.id ?? n.Id,
+    content: n.content ?? n.Content,
+    timestamp: n.timestamp ?? n.Timestamp
+  })).sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+});
+
+const saveNote = async () => {
+  if (!newNoteContent.value) return;
+  try {
+    await api.post(`/patients/${route.params.id}/notes`, { content: newNoteContent.value });
+    newNoteContent.value = '';
+    await load();
+  } catch (err) {
+    alert("Opslaan notitie mislukt: " + (err.response?.data || "Serverfout"));
+  }
+};
 
 const load = async () => {
   loading.value = true
@@ -570,7 +672,7 @@ onMounted(load)
 .app-type {
   font-weight: 600;
   color: #3182ce;
-  margin-right: 8px;
+  margin: 0 3px;
 }
 
 .app-duration {
@@ -588,5 +690,105 @@ onMounted(load)
   background: #f7fafc;
   color: #718096;
   border: 1px solid #e2e8f0;
+}
+
+.intake-report {
+  background: #fff;
+  border: 2px solid #e2e8f0;
+  padding: 20px;
+  border-radius: 12px;
+}
+
+.report-meta {
+  font-size: 0.8em;
+  color: #718096;
+  margin-bottom: 15px;
+  border-bottom: 1px solid #edf2f7;
+  padding-bottom: 8px;
+}
+
+.report-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+.full-width {
+  grid-column: span 2;
+}
+
+.intake-form {
+  background: #f7fafc;
+  padding: 20px;
+  border-radius: 12px;
+  border: 1px dashed #cbd5e0;
+}
+
+.form-group {
+  margin-bottom: 15px;
+}
+
+.form-group label {
+  display: block;
+  font-weight: bold;
+  margin-bottom: 5px;
+  color: #4a5568;
+}
+
+.form-group input,
+.form-group select,
+.form-group textarea {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #cbd5e0;
+  border-radius: 6px;
+}
+
+.save-button {
+  background: #38a169;
+  color: white;
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-weight: bold;
+  cursor: pointer;
+  border: none;
+  width: 100%;
+}
+
+.save-button:disabled {
+  background: #a0aec0;
+  cursor: not-allowed;
+}
+
+.notes-container {
+  margin-top: 25px;
+  padding-top: 20px;
+  border-top: 1px solid #edf2f7;
+}
+
+.note-item {
+  background: #fdfdfd;
+  padding: 10px;
+  border-left: 3px solid #3182ce;
+  margin-bottom: 10px;
+  list-style: none;
+}
+
+.add-note-box textarea {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #cbd5e0;
+  border-radius: 6px;
+  margin-top: 10px;
+}
+
+.btn-small {
+  background: #3182ce;
+  color: white;
+  padding: 6px 12px;
+  border-radius: 4px;
+  border: none;
+  margin-top: 5px;
+  cursor: pointer;
 }
 </style>
