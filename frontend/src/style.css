@@ -1,9 +1,11 @@
+/* ==========================================================================
+    APP ALGEMEEN & LAYOUT
+   ========================================================================== */
 :root {
-  --bg: #ffffff;
+  --bg: #e9f7ff;
   --panel: #ffffff;
   --muted: #6b7280;
   --accent: #2563eb;
-  /* blauw accent */
   --accent-2: #0ea5a4;
   /* secundair groen */
   --border: #e6e6e9;
@@ -26,6 +28,7 @@ body,
   font-family: var(--mono);
   background: var(--bg);
   color: var(--text);
+  background-color: var(--bg);
 }
 
 .container {
@@ -42,7 +45,9 @@ body,
   color: var(--text);
 }
 
-/* Search / controls */
+/* ==========================================================================
+    GENERIEKE COMPONENTEN
+   ========================================================================== */
 .controls {
   display: flex;
   gap: 10px;
@@ -81,7 +86,6 @@ body,
   font-size: 13px;
 }
 
-/* Card / table wrapper */
 .card {
   background: var(--panel);
   border: 1px solid var(--border);
@@ -90,99 +94,121 @@ body,
   box-shadow: var(--soft-shadow);
 }
 
-/* Table basics */
-.table {
-  width: 100%;
-  border-collapse: collapse;
-  margin-top: 12px;
-  font-size: 14px;
+body {
+    background: linear-gradient(120deg, #eaf6fb 60%, #f4f7fa 100%);
+    font-family: 'Segoe UI', Arial, sans-serif;
+    margin: 0;
+    color: #234;
+    min-height: 100vh;
 }
 
-.table thead th {
-  text-align: left;
-  padding: 12px 16px;
-  border-bottom: 2px solid var(--border);
-  background: #fff;
-  font-weight: 700;
-}
-
-.table tbody td {
-  padding: 12px 16px;
-  border-bottom: 1px solid var(--border);
-  vertical-align: middle;
-}
-
-/* Empty-state */
-.empty {
-  padding: 28px;
-  text-align: center;
-  color: var(--muted);
-}
-
-/* Links and rows */
-.table tbody tr:hover {
-  background: #fbfbfd;
-}
-
-.table a {
-  color: var(--accent);
-  text-decoration: none;
-  font-weight: 600;
-}
-
-/* Pagination */
-.pagination {
-  display: flex;
-  gap: 10px;
-  align-items: center;
-  margin-top: 14px;
-  color: var(--muted);
-}
-
-.page-button {
-  padding: 6px 10px;
-  border-radius: 6px;
-  border: 1px solid var(--border);
-  background: #fff;
-  cursor: pointer;
-}
-
-.page-button[disabled] {
-  opacity: 0.5;
-  cursor: default;
-}
-
-/* Responsive */
-@media (max-width:720px) {
-  .table thead {
-    display: none;
-  }
-
-  .table,
-  .table tbody,
-  .table tr,
-  .table td {
-    display: block;
-    width: 100%;
-  }
-
-  .table tr {
-    margin-bottom: 12px;
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 8px;
-  }
-
-  .table td {
-    padding: 8px 12px;
+header,
+.navbar {
+    background: #3bb3ce;
+    color: #fff;
+    padding: 24px 48px;
+    font-size: 2.2rem;
+    font-weight: bold;
+    letter-spacing: 1px;
+    margin-bottom: 0;
+    border-radius: 0;
+    box-shadow: 0 2px 12px rgba(59, 179, 206, 0.15);
     border: none;
-  }
+}
 
-  .table td::before {
-    content: attr(data-label);
-    display: block;
+main {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 48px 32px;
+    border-radius: 0;
+    box-shadow: none;
+    border: none;
+}
+
+h2 {
+    margin-top: 0;
+    font-size: 1.6rem;
+    font-weight: 700;
+    color: #2a7ca3;
+    letter-spacing: 0.5px;
+}
+
+button,
+input[type="submit"] {
+    cursor: pointer;
+}
+
+/* ==========================================================================
+    DOSSIER LAYOUT
+   ========================================================================== */
+.patient-dossier {
+    margin-top: 32px;
+    padding-top: 24px;
+    border-top: 2px solid #eaf6fb;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 24px;
+}
+
+.dossier-section {
+    background: #fafdff;
+    border-radius: 12px;
+    border: 2px solid #eaf6fb;
+    padding: 20px 22px;
+    box-shadow: 0 2px 8px rgba(59, 179, 206, 0.06);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin: 20px 0;
+}
+
+.dossier-section-title {
+    font-size: 1rem;
+    font-weight: 700;
+    color: #2a7ca3;
+    margin: 0 0 4px 0;
+}
+
+.dossier-list {
+    margin: 0;
+    padding-left: 1.1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    font-size: 0.98rem;
+    color: #234;
+}
+
+.dossier-item-title {
     font-weight: 600;
-    color: var(--muted);
-    margin-bottom: 6px;
-  }
+}
+
+.dossier-item-meta {
+    font-weight: 400;
+    color: #4a6375;
+}
+
+.pill {
+  min-width: fit-content;
+  max-height: fit-content;
+  border-radius: 5px;
+  padding: 2px;
+  margin: 0 0.2vw;
+}
+
+.pill-ok {
+  background: #c6f6d5;
+  color: #22543d;
+}
+
+.pill-open {
+  background: #feebc8;
+  color: #744210;
+}
+
+.status-pill {
+  font-size: 0.75em;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-weight: bold;
 }

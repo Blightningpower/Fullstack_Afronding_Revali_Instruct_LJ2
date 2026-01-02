@@ -5,49 +5,73 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using RevaliInstruct.Api.Middleware;
-using RevaliInstruct.Api.Services;
 using RevaliInstruct.Core.Data;
+using RevaliInstruct.Api.Services;
 
-// CORS policy name constant
+// CORS policy naam constant
 const string MyAllowedOrigins = "MyAllowedOrigins";
 
 var builder = WebApplication.CreateBuilder(args);
 
 // =====================
-// .env handmatig inladen
+// 1. .env handmatig inladen (Verbeterde versie)
 // =====================
-var envFile = Path.Combine(Directory.GetCurrentDirectory(), ".env");
-if (File.Exists(envFile))
+string currentDir = Directory.GetCurrentDirectory();
+string[] pathsToTry = {
+    Path.Combine(currentDir, ".env"),                          // Api folder
+    Path.Combine(currentDir, "..", ".env"),                   // backend folder
+    Path.Combine(currentDir, "..", "..", ".env"),             // Root folder
+    Path.Combine(AppDomain.CurrentDomain.BaseDirectory, ".env") // Naast de .exe
+};
+
+bool envLoaded = false;
+foreach (var path in pathsToTry)
 {
-    foreach (var line in File.ReadAllLines(envFile))
+    var fullPath = Path.GetFullPath(path);
+    if (File.Exists(fullPath))
     {
-        if (string.IsNullOrWhiteSpace(line) || line.TrimStart().StartsWith("#")) continue;
-        var parts = line.Split('=', 2);
-        if (parts.Length == 2)
+        Console.WriteLine($"[Config] .env gevonden op: {fullPath}");
+        foreach (var line in File.ReadAllLines(fullPath))
         {
-            Environment.SetEnvironmentVariable(parts[0].Trim(), parts[1].Trim());
+            if (string.IsNullOrWhiteSpace(line) || line.TrimStart().StartsWith("#")) continue;
+            var parts = line.Split('=', 2);
+            if (parts.Length == 2)
+            {
+                var key = parts[0].Trim();
+                var value = parts[1].Trim();
+                
+                // Belangrijk: zet in beide plekken zodat DB én JWT het zien
+                Environment.SetEnvironmentVariable(key, value);
+                builder.Configuration[key] = value;
+            }
         }
+        envLoaded = true;
+        break; 
     }
 }
 
-// =====================
-// Services registreren
-// =====================
-builder.Services.AddControllers();
-builder.Services.AddEndpointsApiExplorer();
+if (!envLoaded) Console.WriteLine("[WAARSCHUWING] Geen .env bestand gevonden!");
 
-// Swagger + JWT definitie
+// =====================
+// 2. Services registreren
+// =====================
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        // 1. Forceert camelCase (firstName ipv FirstName) zodat Vue de data herkent
+        options.JsonSerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase;
+        
+        // 2. VOORKOMT DE 3,5 SEC VERTRAGING: negeert oneindige lussen (Cycles) in de data
+        options.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles;
+    });
+
+// Swagger configuratie
 builder.Services.AddSwaggerGen(c =>
 {
-    var xml = $"{System.Reflection.Assembly.GetExecutingAssembly().GetName().Name}.xml";
-    var xmlPath = Path.Combine(AppContext.BaseDirectory, xml);
-    if (File.Exists(xmlPath))
-    {
-        c.IncludeXmlComments(xmlPath);
-    }
-
     c.SwaggerDoc("v1", new OpenApiInfo { Title = "RevaliInstruct.Api", Version = "v1" });
-
     c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
         Name = "Authorization",
@@ -57,24 +81,17 @@ builder.Services.AddSwaggerGen(c =>
         In = ParameterLocation.Header,
         Description = "JWT Authorization header using Bearer scheme"
     });
-
-    c.AddSecurityRequirement(new OpenApiSecurityRequirement
-    {
+    c.AddSecurityRequirement(new OpenApiSecurityRequirement {
         {
-            new OpenApiSecurityScheme
-            {
-                Reference = new OpenApiReference
-                {
-                    Type = ReferenceType.SecurityScheme,
-                    Id = "Bearer"
-                }
+            new OpenApiSecurityScheme {
+                Reference = new OpenApiReference { Type = ReferenceType.SecurityScheme, Id = "Bearer" }
             },
             Array.Empty<string>()
         }
     });
 });
 
-// CORS policy voor Vite dev server
+// CORS voor de frontend (Vite)
 builder.Services.AddCors(options =>
 {
     options.AddPolicy(name: MyAllowedOrigins, policy =>
@@ -86,239 +103,107 @@ builder.Services.AddCors(options =>
     });
 });
 
-// Configuratiebronnen laden
-builder.Configuration
-    .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
-    .AddJsonFile($"appsettings.{builder.Environment.EnvironmentName}.json",
-                 optional: true, reloadOnChange: true)
-    .AddEnvironmentVariables();
-
 // =====================
-// JWT Authenticatie
+// 3. JWT Authenticatie
 // =====================
-var secret = builder.Configuration["Jwt:Key"] 
-             ?? builder.Configuration["Jwt:Secret"] 
-             ?? builder.Configuration["JWT__Secret"] 
+var secret = builder.Configuration["JWT_SECRET"] 
+             ?? builder.Configuration["Jwt:Key"] 
              ?? Environment.GetEnvironmentVariable("JWT_SECRET");
 
 if (string.IsNullOrEmpty(secret)) {
     Console.WriteLine("FOUT: Geen JWT Secret gevonden!");
+} else {
+    Console.WriteLine($"SUCCES: JWT Secret geladen (lengte: {secret.Length})");
 }
 
-var authBuilder = builder.Services.AddAuthentication(options =>
+builder.Services.AddAuthentication(options =>
 {
     options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
     options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+})
+.AddJwtBearer(options =>
+{
+    options.RequireHttpsMetadata = false;
+    options.SaveToken = true;
+    options.TokenValidationParameters = new TokenValidationParameters
+    {
+        ValidateIssuer = false,
+        ValidateAudience = false,
+        ValidateIssuerSigningKey = true,
+        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secret ?? "fallback_secret_voor_build_doeleinden")),
+        ClockSkew = TimeSpan.FromSeconds(30),
+        NameClaimType = System.Security.Claims.ClaimTypes.NameIdentifier,
+        RoleClaimType = System.Security.Claims.ClaimTypes.Role
+    };
+
+    options.Events = new JwtBearerEvents
+    {
+        OnMessageReceived = ctx => {
+            var hdr = ctx.Request.Headers["Authorization"].FirstOrDefault();
+            if (!string.IsNullOrWhiteSpace(hdr) && hdr.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase)) {
+                ctx.Token = hdr.Substring("Bearer ".Length).Trim();
+            }
+            return Task.CompletedTask;
+        },
+        OnTokenValidated = ctx => {
+            var id = ctx.Principal?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            Console.WriteLine($"JwtBearer token validated. NameId={id}");
+            return Task.CompletedTask;
+        },
+        OnAuthenticationFailed = ctx => {
+            Console.WriteLine("JwtBearer authentication failed: " + ctx.Exception?.Message);
+            return Task.CompletedTask;
+        }
+    };
 });
 
-if (!string.IsNullOrEmpty(secret))
-{
-    authBuilder.AddJwtBearer(options =>
-    {
-        options.RequireHttpsMetadata = false;
-        options.SaveToken = true;
-        options.TokenValidationParameters = new TokenValidationParameters
-        {
-            ValidateIssuer = false,
-            ValidateAudience = false,
-            ValidateIssuerSigningKey = true,
-            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secret)),
-            ClockSkew = TimeSpan.FromSeconds(30),
-            NameClaimType = System.Security.Claims.ClaimTypes.NameIdentifier,
-            RoleClaimType = System.Security.Claims.ClaimTypes.Role
-
-        };
-
-        if (string.IsNullOrEmpty(secret))
-        {
-            Console.WriteLine("WAARSCHUWING: JWT Secret is leeg! Controleer je .env of appsettings.json.");
-        }
-
-        // Logging / debugging hooks
-        options.Events = new JwtBearerEvents
-        {
-            OnMessageReceived = ctx =>
-            {
-                try
-                {
-                    var hdr = ctx.Request.Headers["Authorization"].FirstOrDefault()
-                              ?? ctx.Request.Headers["authorization"].FirstOrDefault();
-
-                    if (string.IsNullOrWhiteSpace(hdr))
-                    {
-                        var q = ctx.Request.Query["access_token"].FirstOrDefault();
-                        if (!string.IsNullOrWhiteSpace(q))
-                        {
-                            Console.WriteLine("JwtBearer OnMessageReceived: found token in query string");
-                            ctx.Token = q;
-                            return Task.CompletedTask;
-                        }
-                    }
-                    else
-                    {
-                        Console.WriteLine($"JwtBearer OnMessageReceived Authorization header: {hdr}");
-                        if (hdr.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
-                        {
-                            ctx.Token = hdr.Substring("Bearer ".Length).Trim();
-                        }
-                    }
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine("OnMessageReceived error: " + ex.Message);
-                }
-
-                return Task.CompletedTask;
-            },
-            OnTokenValidated = ctx =>
-            {
-                var id = ctx.Principal?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-                var role = ctx.Principal?.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value;
-                Console.WriteLine($"JwtBearer token validated. NameId={id ?? "<null>"} Role={role ?? "<null>"}");
-                return Task.CompletedTask;
-            },
-            OnAuthenticationFailed = ctx =>
-            {
-                Console.WriteLine("JwtBearer authentication failed: " + ctx.Exception?.Message);
-                return Task.CompletedTask;
-            }
-        };
-    });
-}
-else
-{
-    Console.WriteLine("JWT secret is leeg — JWT validatie wordt overgeslagen in deze sessie.");
-}
-
 // =====================
-// Database connectie
+// 4. Database connectie
 // =====================
 var conn = builder.Configuration.GetConnectionString("DefaultConnection");
 if (string.IsNullOrEmpty(conn))
 {
     var host = Environment.GetEnvironmentVariable("MSSQL_HOST") ?? "localhost";
-    var port = Environment.GetEnvironmentVariable("MSSQL_PORT") ?? "1433";
     var db = Environment.GetEnvironmentVariable("MSSQL_DATABASE") ?? "revali_db";
     var user = Environment.GetEnvironmentVariable("MSSQL_USER") ?? "revali_login";
     var pwd = Environment.GetEnvironmentVariable("MSSQL_PASSWORD") ?? "";
-    conn = $"Server={host},{port};Database={db};User Id={user};Password={pwd};TrustServerCertificate=True;MultipleActiveResultSets=true;";
+    conn = $"Server={host},1433;Database={db};User Id={user};Password={pwd};TrustServerCertificate=True;MultipleActiveResultSets=true;";
 }
 
-Console.WriteLine($"DEBUG: DefaultConnection = {(string.IsNullOrEmpty(conn) ? "<empty>" : conn)}");
+Console.WriteLine($"DEBUG: DefaultConnection string samengesteld.");
 
-if (!string.IsNullOrEmpty(conn))
-{
-    builder.Services.AddDbContext<ApplicationDbContext>(options =>
-        options.UseSqlServer(conn)
-               .EnableDetailedErrors()
-               .EnableSensitiveDataLogging(builder.Environment.IsDevelopment())
-    );
-}
-else
-{
-    Console.WriteLine("Geen DefaultConnection gevonden");
-}
+builder.Services.AddDbContext<ApplicationDbContext>(options =>
+    options.UseSqlServer(conn).EnableSensitiveDataLogging(builder.Environment.IsDevelopment())
+);
 
 // =====================
-// App builden
+// 5. App Build & Middleware
 // =====================
 var app = builder.Build();
 
-// Unieke server instance id voor debugging
-var serverInstanceId = Guid.NewGuid().ToString();
-Console.WriteLine($"Server instance id: {serverInstanceId}");
-
-// Header middleware
-app.Use(async (ctx, next) =>
-{
-    ctx.Response.OnStarting(() =>
-    {
-        ctx.Response.Headers["X-Server-Instance"] = serverInstanceId;
-        ctx.Response.Headers.Append("Access-Control-Expose-Headers", "X-Server-Instance");
-        return Task.CompletedTask;
-    });
-
-    await next();
-});
-
-// =====================
-// Optionele reset via env
-// =====================
-if (Environment.GetEnvironmentVariable("RESET_DB") == "1")
-{
-    using var scope = app.Services.CreateScope();
-    var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-    await DbInitializer.ResetAndSeedAsync(db);
-    Console.WriteLine("Database reset (RESET_DB=1).");
-}
-
-// =====================
-// Automatische seeding in Development
-// =====================
-if (app.Environment.IsDevelopment())
-{
-    try
-    {
-        using var seedScope = app.Services.CreateScope();
-        var db = seedScope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-        await DbInitializer.SeedAsync(db);
-        Console.WriteLine("DbInitializer.SeedAsync executed at startup (development).");
-    }
-    catch (Exception ex)
-    {
-        var logger = app.Services.GetRequiredService<ILogger<Program>>();
-        logger.LogWarning(ex, "Automatic seeding on startup failed.");
-    }
-}
-
-// =====================
-// Error handling
-// =====================
-if (app.Environment.IsDevelopment())
-{
-    app.UseDeveloperExceptionPage();
-}
-else
-{
-    app.UseExceptionHandler(errApp =>
-    {
-        errApp.Run(async ctx =>
-        {
-            var feature = ctx.Features.Get<IExceptionHandlerFeature>();
-            var ex = feature?.Error;
-            var logger = ctx.RequestServices.GetRequiredService<ILogger<Program>>();
-            if (ex != null) logger.LogError(ex, "Unhandled exception");
-
-            ctx.Response.StatusCode = StatusCodes.Status500InternalServerError;
-            ctx.Response.ContentType = "application/json";
-            await ctx.Response.WriteAsJsonAsync(new { message = "Unexpected server error" });
-        });
-    });
-}
-
-// =====================
-// Swagger in dev
-// =====================
-if (app.Environment.IsDevelopment())
-{
+if (app.Environment.IsDevelopment()) {
     app.UseSwagger();
     app.UseSwaggerUI();
+    app.UseDeveloperExceptionPage();
 }
 
-// =====================
-// Pipeline volgorde
-// =====================
 app.UseRouting();
-
 app.UseCors(MyAllowedOrigins);
-
 app.UseAuthentication();
-
-// middleware die SQL SESSION_CONTEXT zet
 app.UseMiddleware<SqlSessionContextMiddleware>();
-
 app.UseAuthorization();
 
-app.MapControllers();
+// Database Initialisatie (RESET of SEED)
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+    if (Environment.GetEnvironmentVariable("RESET_DB") == "1") {
+        await DbInitializer.ResetAndSeedAsync(db);
+        Console.WriteLine("Database reset uitgevoerd.");
+    } else {
+        await DbInitializer.SeedAsync(db);
+    }
+}
 
+app.MapControllers();
 app.Run();

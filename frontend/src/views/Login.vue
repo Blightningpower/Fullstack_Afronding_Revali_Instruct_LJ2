@@ -56,7 +56,6 @@ async function handleSubmit() {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #e9f7ff;
 }
 
 .card {

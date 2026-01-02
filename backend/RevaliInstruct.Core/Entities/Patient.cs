@@ -1,6 +1,4 @@
-using System;
-using System.Collections.Generic;
-using System.Text.Json.Serialization;
+using RevaliInstruct.Core.Data.Enums;
 
 namespace RevaliInstruct.Core.Entities
 {
@@ -14,7 +12,6 @@ namespace RevaliInstruct.Core.Entities
         public string? Email { get; set; }
         public string? Phone { get; set; }
         public PatientStatus Status { get; set; } = PatientStatus.IntakePlanned;
-        public string? Notes { get; set; }
         public DateTime? StartDate { get; set; }
 
         // De ingelogde Revalidatiearts
@@ -34,113 +31,5 @@ namespace RevaliInstruct.Core.Entities
         public ICollection<AccessoryAdvice> AccessoryAdvices { get; set; } = new List<AccessoryAdvice>();
         public ICollection<IntakeRecord> IntakeRecords { get; set; } = new List<IntakeRecord>();
         public ICollection<AuditLog> AuditLogs { get; set; } = new List<AuditLog>();
-    }
-
-    public class PainEntry
-    {
-        public int Id { get; set; }
-        public int PatientId { get; set; }
-        public DateTime Timestamp { get; set; }
-        public int Score { get; set; }
-        public string? Note { get; set; }
-    }
-
-    public class Exercise
-    {
-        public int Id { get; set; }
-        public string Name { get; set; } = "";
-        public string? Description { get; set; }
-        public string? VideoUrl { get; set; }
-    }
-
-    public class ExerciseAssignment
-    {
-        public int Id { get; set; }
-        public int PatientId { get; set; }
-        public int ExerciseId { get; set; }
-        public Exercise? Exercise { get; set; }
-        public int Repetitions { get; set; }
-        public int Sets { get; set; }
-        public string Frequency { get; set; } = string.Empty;
-        public string? Notes { get; set; }
-        public bool ClientCheckedOff { get; set; }
-        public DateTime? CheckedOffAt { get; set; }
-    }
-
-    public class ActivityLogEntry
-    {
-        public int Id { get; set; }
-        public int PatientId { get; set; }
-        public DateTime Timestamp { get; set; }
-        public string Activity { get; set; } = string.Empty;
-    }
-
-    public class Medication
-    {
-        public int Id { get; set; }
-        public int PatientId { get; set; }
-        public int HuisartsId { get; set; }
-        public string Name { get; set; } = string.Empty;
-        public string Dosage { get; set; } = string.Empty;
-        public string Frequency { get; set; } = string.Empty;
-        public DateTime StartDate { get; set; }
-        public DateTime? EndDate { get; set; }
-        public string Status { get; set; } = string.Empty;
-    }
-
-    public class AccessoryAdvice
-    {
-        public int Id { get; set; }
-        public int PatientId { get; set; }
-        public int HuisartsId { get; set; }
-        public string Name { get; set; } = string.Empty;
-        public DateTime AdviceDate { get; set; }
-        public string ExpectedUsagePeriod { get; set; } = string.Empty;
-        public string Status { get; set; } = string.Empty;
-    }
-
-    public class Appointment
-    {
-        public int Id { get; set; }
-        public int PatientId { get; set; }
-        public int DoctorId { get; set; }
-        public DateTime AppointmentDateTime { get; set; }
-        public int DurationMinutes { get; set; }
-        public string Type { get; set; } = string.Empty;
-        public string Status { get; set; } = string.Empty;
-    }
-
-    public class IntakeRecord
-    {
-        public int Id { get; set; }
-        public int PatientId { get; set; }
-
-        [JsonIgnore]
-        public Patient? Patient { get; set; }
-        public int DoctorId { get; set; }
-        public string Diagnosis { get; set; } = string.Empty;
-        public string Severity { get; set; } = string.Empty;
-        public string Goals { get; set; } = string.Empty;
-        public DateTime Date { get; set; }
-    }
-
-    public class AuditLog
-    {
-        public int Id { get; set; }
-        public int UserId { get; set; }
-        public string Action { get; set; } = string.Empty;
-        public DateTime Timestamp { get; set; }
-        public string Details { get; set; } = string.Empty;
-    }
-
-    public class PatientNote
-    {
-        public int Id { get; set; }
-        public int PatientId { get; set; }
-
-        [JsonIgnore]
-        public int AuthorUserId { get; set; }
-        public DateTime Timestamp { get; set; }
-        public string Content { get; set; } = string.Empty;
     }
 }

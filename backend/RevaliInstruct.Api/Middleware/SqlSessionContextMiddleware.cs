@@ -15,38 +15,41 @@ namespace RevaliInstruct.Api.Middleware
 
         public async Task InvokeAsync(HttpContext context, ApplicationDbContext db)
         {
-            // Voor nu: zet UserId = 0 en IsAdmin = false om compile errors weg te hebben.
-            int? userId = 0;
+            var userIdClaim = context.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value
+                             ?? context.User.FindFirst("sub")?.Value;
 
-            try
+            if (int.TryParse(userIdClaim, out int userId))
             {
-                var conn = db.Database.GetDbConnection();
-                if (conn.State != ConnectionState.Open)
-                    await conn.OpenAsync();
-
-                using (var cmd = conn.CreateCommand())
+                try
                 {
-                    cmd.CommandText = "EXEC sys.sp_set_session_context @key=N'UserId', @value=@p0;";
-                    var p = cmd.CreateParameter();
-                    p.ParameterName = "@p0";
-                    p.Value = userId ?? (object)DBNull.Value;
-                    cmd.Parameters.Add(p);
-                    await cmd.ExecuteNonQueryAsync();
-                }
+                    var conn = db.Database.GetDbConnection();
+                    if (conn.State != ConnectionState.Open) await conn.OpenAsync();
 
-                using (var cmd2 = conn.CreateCommand())
-                {
-                    cmd2.CommandText = "EXEC sys.sp_set_session_context @key=N'IsAdmin', @value=@p0;";
-                    var p2 = cmd2.CreateParameter();
-                    p2.ParameterName = "@p0";
-                    p2.Value = "false";
-                    cmd2.Parameters.Add(p2);
-                    await cmd2.ExecuteNonQueryAsync();
+                    using (var cmd = conn.CreateCommand())
+                    {
+                        cmd.CommandText = "EXEC sys.sp_set_session_context @key=N'UserId', @value=@p0;";
+                        var p = cmd.CreateParameter();
+                        p.ParameterName = "@p0";
+                        p.Value = userId;
+                        cmd.Parameters.Add(p);
+                        await cmd.ExecuteNonQueryAsync();
+                    }
+
+                    var isAdmin = context.User.IsInRole("Admin") ? "true" : "false";
+                    using (var cmd2 = conn.CreateCommand())
+                    {
+                        cmd2.CommandText = "EXEC sys.sp_set_session_context @key=N'IsAdmin', @value=@p0;";
+                        var p2 = cmd2.CreateParameter();
+                        p2.ParameterName = "@p0";
+                        p2.Value = isAdmin;
+                        cmd2.Parameters.Add(p2);
+                        await cmd2.ExecuteNonQueryAsync();
+                    }
                 }
-            }
-            catch
-            {
-                // ignore errors in dev
+                catch
+                {
+                    // Fout bij instellen session context negeren
+                }
             }
 
             await _next(context);

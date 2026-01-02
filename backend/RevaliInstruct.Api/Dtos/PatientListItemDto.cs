@@ -1,4 +1,4 @@
-using RevaliInstruct.Core.Entities;
+using RevaliInstruct.Core.Data.Enums;
 
 namespace RevaliInstruct.Api.Dtos
 {

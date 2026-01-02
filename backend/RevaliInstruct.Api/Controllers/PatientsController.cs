@@ -4,7 +4,7 @@ using RevaliInstruct.Core.Data;
 using Microsoft.AspNetCore.Authorization;
 using RevaliInstruct.Core.Entities;
 using RevaliInstruct.Api.Dtos;
-using System.Linq;
+using RevaliInstruct.Api.Services;
 
 namespace RevaliInstruct.Api.Controllers
 {
@@ -14,18 +14,22 @@ namespace RevaliInstruct.Api.Controllers
     public class PatientsController : ControllerBase
     {
         private readonly ApplicationDbContext _context;
+        private readonly ICurrentUserService _currentUserService;
 
-        public PatientsController(ApplicationDbContext context) => _context = context;
+        public PatientsController(ApplicationDbContext context, ICurrentUserService currentUserService)
+        {
+            _context = context;
+            _currentUserService = currentUserService;
+        }
 
         [HttpGet]
         public async Task<ActionResult<IEnumerable<PatientListItemDto>>> GetPatients(
             [FromQuery] string? searchTerm,
             [FromQuery] string? status)
         {
-            var userIdClaim = User.FindFirst(System.IdentityModel.Tokens.Jwt.JwtRegisteredClaimNames.Sub)?.Value
-                        ?? User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            var currentUserId = _currentUserService.UserId;
 
-            if (string.IsNullOrEmpty(userIdClaim) || !int.TryParse(userIdClaim, out int currentUserId))
+            if (currentUserId == null)
             {
                 return Unauthorized();
             }
@@ -36,7 +40,6 @@ namespace RevaliInstruct.Api.Controllers
             if (!string.IsNullOrWhiteSpace(searchTerm))
             {
                 var term = searchTerm.Trim().ToLower();
-                // Zoek in voornaam, achternaam of de gecombineerde naam
                 query = query.Where(p =>
                     p.FirstName.ToLower().Contains(term) ||
                     p.LastName.ToLower().Contains(term));
@@ -65,10 +68,9 @@ namespace RevaliInstruct.Api.Controllers
         [HttpGet("{id}/dossier")]
         public async Task<ActionResult<Patient>> GetPatient(int id)
         {
-            var userIdClaim = User.FindFirst(System.IdentityModel.Tokens.Jwt.JwtRegisteredClaimNames.Sub)?.Value
-                           ?? User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            var currentUserId = _currentUserService.UserId;
 
-            if (string.IsNullOrEmpty(userIdClaim) || !int.TryParse(userIdClaim, out int currentUserId))
+            if (currentUserId == null)
             {
                 return Unauthorized();
             }
@@ -84,6 +86,7 @@ namespace RevaliInstruct.Api.Controllers
                 .Include(p => p.Appointments)
                 .Include(p => p.IntakeRecords)
                 .Include(p => p.PatientNotes)
+                .AsSplitQuery()
                 .FirstOrDefaultAsync(p => p.Id == id && p.AssignedDoctorUserId == currentUserId);
 
             if (patient == null) return NotFound();
@@ -94,8 +97,8 @@ namespace RevaliInstruct.Api.Controllers
         [HttpPost("{id}/intake")]
         public async Task<IActionResult> CreateIntake(int id, [FromBody] IntakeDto dto)
         {
-            var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-            if (!int.TryParse(userIdClaim, out int currentUserId)) return Unauthorized();
+            var currentUserId = _currentUserService.UserId;
+            if (currentUserId == null) return Unauthorized();
 
             var patient = await _context.Patients
                 .Include(p => p.IntakeRecords)
@@ -110,7 +113,7 @@ namespace RevaliInstruct.Api.Controllers
             var intake = new IntakeRecord
             {
                 PatientId = id,
-                DoctorId = currentUserId,
+                DoctorId = currentUserId.Value,
                 Diagnosis = dto.Diagnosis,
                 Severity = dto.Severity,
                 Goals = dto.Goals,
@@ -120,7 +123,7 @@ namespace RevaliInstruct.Api.Controllers
             _context.IntakeRecords.Add(intake);
             _context.AuditLogs.Add(new AuditLog
             {
-                UserId = currentUserId,
+                UserId = currentUserId.Value,
                 Action = "Intake Geregistreerd",
                 Timestamp = DateTime.Now,
                 Details = $"Patiënt ID: {id}"
@@ -133,13 +136,13 @@ namespace RevaliInstruct.Api.Controllers
         [HttpPost("{id}/notes")]
         public async Task<IActionResult> AddNote(int id, [FromBody] PatientNote noteDto)
         {
-            var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-            if (!int.TryParse(userIdClaim, out int currentUserId)) return Unauthorized();
+            var currentUserId = _currentUserService.UserId;
+            if (currentUserId == null) return Unauthorized();
 
             var note = new PatientNote
             {
                 PatientId = id,
-                AuthorUserId = currentUserId,
+                AuthorUserId = currentUserId.Value,
                 Timestamp = DateTime.Now,
                 Content = noteDto.Content
             };
@@ -147,6 +150,37 @@ namespace RevaliInstruct.Api.Controllers
             _context.PatientNotes.Add(note);
             await _context.SaveChangesAsync();
             return Ok(note);
+        }
+
+        [HttpPost("{id}/exercises")]
+        public async Task<IActionResult> AssignExercise(int id, [FromBody] ExerciseAssignmentDto dto)
+        {
+            var currentUserId = _currentUserService.UserId;
+            if (currentUserId == null) return Unauthorized();
+
+            // Check of de patiënt bestaat en bij deze arts hoort
+            var patientExists = await _context.Patients
+                .AnyAsync(p => p.Id == id && p.AssignedDoctorUserId == currentUserId);
+
+            if (!patientExists) return NotFound("Patiënt niet gevonden of geen toegang.");
+
+            var assignment = new ExerciseAssignment
+            {
+                PatientId = id,
+                ExerciseId = dto.ExerciseId,
+                Repetitions = dto.Repetitions,
+                Sets = dto.Sets,
+                Frequency = dto.Frequency,
+                Notes = dto.Notes,
+                StartDate = dto.StartDate ?? DateTime.Now,
+                EndDate = dto.EndDate ?? DateTime.Now.AddMonths(1),
+                ClientCheckedOff = false
+            };
+
+            _context.ExerciseAssignments.Add(assignment);
+            await _context.SaveChangesAsync();
+
+            return Ok(new { message = "Oefening succesvol toegewezen" });
         }
     }
 }
