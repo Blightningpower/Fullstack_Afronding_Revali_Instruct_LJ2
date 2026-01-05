@@ -29,6 +29,11 @@ namespace RevaliInstruct.Core.Data
 
             modelBuilder.ApplyConfigurationsFromAssembly(typeof(ApplicationDbContext).Assembly);
 
+            modelBuilder.Entity<Patient>()
+                .HasMany(p => p.ActivityLogEntries)
+                .WithOne()
+                .HasForeignKey("PatientId");
+
             modelBuilder.Seed();
         }
     }

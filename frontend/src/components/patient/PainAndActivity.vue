@@ -1,9 +1,16 @@
 <template>
     <div class="pain-activity-wrapper">
         <section class="dossier-section">
-            <h3 class="dossier-section-title">Pijnindicaties</h3>
-            <div class="pain-list" v-if="pain.length">
-                <div v-for="e in pain" :key="e.id" class="pain-card">
+            <div class="section-header">
+                <h3 class="dossier-section-title">📈 Pijnverloop</h3>
+                <div class="filter-controls">
+                    <input type="date" v-model="filterDateStart" placeholder="Van" />
+                    <input type="date" v-model="filterDateEnd" placeholder="Tot" />
+                </div>
+            </div>
+
+            <div class="pain-list" v-if="filteredPain.length">
+                <div v-for="e in filteredPain" :key="e.id" class="pain-card">
                     <div class="pain-header">
                         <span>{{ formatDate(e.timestamp || e.Timestamp) }}</span>
                         <div class="pain-score-pill" :class="getPainClass(e.score || e.Score)">
@@ -17,15 +24,16 @@
                         }">
                         </div>
                     </div>
-                    <p v-if="e.note || e.Note">💬 {{ e.note || e.Note }}</p>
+                    <p v-if="e.note || e.Note" class="pain-note">💬 {{ e.note || e.Note }}</p>
                 </div>
             </div>
+            <div v-else class="empty-state">Geen pijngegevens gevonden voor deze periode.</div>
         </section>
 
         <section class="dossier-section">
-            <h3 class="dossier-section-title">Activiteitenlogboek</h3>
-            <div class="timeline" v-if="activity.length">
-                <div v-for="l in activity" :key="l.id" class="timeline-item">
+            <h3 class="dossier-section-title">📅 Activiteitenlogboek</h3>
+            <div class="timeline" v-if="filteredActivity.length">
+                <div v-for="l in filteredActivity" :key="l.id" class="timeline-item">
                     <div class="timeline-date">{{ formatDateTime(l.timestamp || l.Timestamp) }}</div>
                     <div class="timeline-content">
                         <span class="timeline-dot"></span>
@@ -33,26 +41,61 @@
                     </div>
                 </div>
             </div>
+            <div v-else class="empty-state">Geen activiteiten geregistreerd.</div>
         </section>
     </div>
 </template>
 
 <script setup>
-import { computed } from 'vue';
+import { ref, computed } from 'vue';
 
 const props = defineProps({
     painEntries: { type: Array, default: () => [] },
     activityLogs: { type: Array, default: () => [] }
 });
 
-const pain = computed(() => props.painEntries ?? []);
-const activity = computed(() => props.activityLogs ?? []);
+// Filters voor US5 criteria: "Filteren op specifieke periodes"
+const filterDateStart = ref('');
+const filterDateEnd = ref('');
 
+// Filter- en sorteerlogiek voor Pijn
+const filteredPain = computed(() => {
+    let data = [...(props.painEntries ?? [])];
+
+    if (filterDateStart.value) {
+        data = data.filter(e => new Date(e.timestamp || e.Timestamp) >= new Date(filterDateStart.value));
+    }
+    if (filterDateEnd.value) {
+        data = data.filter(e => new Date(e.timestamp || e.Timestamp) <= new Date(filterDateEnd.value));
+    }
+
+    // Sorteren: nieuwste bovenaan voor monitoring
+    return data.sort((a, b) => new Date(b.timestamp || b.Timestamp) - new Date(a.timestamp || a.Timestamp));
+});
+
+// Filter- en sorteerlogiek voor Activiteiten
+const filteredActivity = computed(() => {
+    let data = [...(props.activityLogs ?? [])];
+
+    // Toepassen van dezelfde periodefilter
+    if (filterDateStart.value) {
+        data = data.filter(l => new Date(l.timestamp || l.Timestamp) >= new Date(filterDateStart.value));
+    }
+
+    // Chronologische volgorde conform US5 criteria
+    return data.sort((a, b) => new Date(b.timestamp || b.Timestamp) - new Date(a.timestamp || a.Timestamp));
+});
+
+// Helpers voor styling
 const getPainColor = (s) => s >= 8 ? '#e53e3e' : s >= 5 ? '#ed8936' : '#48bb78';
 const getPainClass = (s) => s >= 8 ? 'pain-high' : s >= 5 ? 'pain-mid' : 'pain-low';
+
+// Datum formatting
 const formatDate = (d) => new Date(d).toLocaleDateString('nl-NL');
 const formatDateTime = (d) =>
-    new Date(d).toLocaleString('nl-NL', { hour: '2-digit', minute: '2-digit' });
+    new Date(d).toLocaleString('nl-NL', {
+        day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit'
+    });
 </script>
 
 <style scoped>
@@ -140,5 +183,25 @@ const formatDateTime = (d) =>
     border-radius: 6px;
     color: #2d3748;
     margin: 0;
+}
+
+.filter-controls {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 10px;
+}
+
+.filter-controls input {
+    padding: 4px 8px;
+    border: 1px solid #cbd5e0;
+    border-radius: 4px;
+    font-size: 0.8em;
+}
+
+.empty-state {
+    padding: 20px;
+    color: #718096;
+    text-align: center;
+    font-style: italic;
 }
 </style>

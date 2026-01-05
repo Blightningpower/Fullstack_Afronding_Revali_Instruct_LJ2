@@ -22,6 +22,9 @@ namespace RevaliInstruct.Core.Entities
         public int? ReferringDoctorUserId { get; set; }
         public User? ReferringDoctor { get; set; }
 
+        // Navigatie-property voor ActiviteinlogEntries
+        public List<ActivityLogEntry> ActivityLogEntries { get; set; } = new();
+
         public ICollection<PainEntry> PainEntries { get; set; } = new List<PainEntry>();
         public ICollection<Appointment> Appointments { get; set; } = new List<Appointment>();
         public ICollection<ExerciseAssignment> Exercises { get; set; } = new List<ExerciseAssignment>();

@@ -80,7 +80,7 @@ namespace RevaliInstruct.Api.Controllers
                 .Include(p => p.Exercises)
                     .ThenInclude(e => e.Exercise)
                 .Include(p => p.PainEntries)
-                .Include(p => p.ActivityLogs)
+                .Include(p => p.ActivityLogEntries)
                 .Include(p => p.Medications)
                 .Include(p => p.AccessoryAdvices)
                 .Include(p => p.Appointments)
