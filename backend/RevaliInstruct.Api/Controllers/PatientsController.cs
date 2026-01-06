@@ -85,8 +85,9 @@ namespace RevaliInstruct.Api.Controllers
                 .Include(p => p.AccessoryAdvices)
                 .Include(p => p.Appointments)
                 .Include(p => p.IntakeRecords)
-                .Include(p => p.PatientNotes)
                 .Include(p => p.Declarations)
+                .Include(p => p.PatientNotes)
+                    .ThenInclude(n => n.Author)
                 .AsSplitQuery()
                 .FirstOrDefaultAsync(p => p.Id == id && p.AssignedDoctorUserId == currentUserId);
 
@@ -134,32 +135,12 @@ namespace RevaliInstruct.Api.Controllers
             return Ok(intake);
         }
 
-        [HttpPost("{id}/notes")]
-        public async Task<IActionResult> AddNote(int id, [FromBody] PatientNote noteDto)
-        {
-            var currentUserId = _currentUserService.UserId;
-            if (currentUserId == null) return Unauthorized();
-
-            var note = new PatientNote
-            {
-                PatientId = id,
-                AuthorUserId = currentUserId.Value,
-                Timestamp = DateTime.Now,
-                Content = noteDto.Content
-            };
-
-            _context.PatientNotes.Add(note);
-            await _context.SaveChangesAsync();
-            return Ok(note);
-        }
-
         [HttpPost("{id}/exercises")]
         public async Task<IActionResult> AssignExercise(int id, [FromBody] ExerciseAssignmentDto dto)
         {
             var currentUserId = _currentUserService.UserId;
             if (currentUserId == null) return Unauthorized();
 
-            // Check of de patiënt bestaat en bij deze arts hoort
             var patientExists = await _context.Patients
                 .AnyAsync(p => p.Id == id && p.AssignedDoctorUserId == currentUserId);
 
@@ -190,7 +171,6 @@ namespace RevaliInstruct.Api.Controllers
             var currentUserId = _currentUserService.UserId;
             if (currentUserId == null) return Unauthorized();
 
-            // Controleer of patiënt bij de arts hoort
             var patient = await _context.Patients
                 .FirstOrDefaultAsync(p => p.Id == id && p.AssignedDoctorUserId == currentUserId);
             if (patient == null) return NotFound("Patiënt niet gevonden.");
@@ -201,7 +181,6 @@ namespace RevaliInstruct.Api.Controllers
 
             _context.Appointments.Add(appointment);
 
-            // Audit Trail: Log de aanmaak
             _context.AuditLogs.Add(new AuditLog
             {
                 UserId = currentUserId.Value,
@@ -223,12 +202,10 @@ namespace RevaliInstruct.Api.Controllers
             var app = await _context.Appointments.FirstOrDefaultAsync(a => a.Id == appId && a.PatientId == id);
             if (app == null) return NotFound("Afspraak niet gevonden.");
 
-            // Wijzigingen doorvoeren
             app.DateTime = dto.DateTime;
             app.Duration = dto.Duration;
             app.Type = dto.Type;
 
-            // Audit Trail: Log de wijziging
             _context.AuditLogs.Add(new AuditLog
             {
                 UserId = currentUserId.Value,
@@ -312,6 +289,58 @@ namespace RevaliInstruct.Api.Controllers
 
             await _context.SaveChangesAsync();
             return Ok(new { message = "Gemarkeerd als gedeclareerd" });
+        }
+
+        [HttpPost("{id}/notes")]
+        public async Task<IActionResult> AddNote(int id, [FromBody] PatientNoteDto dto)
+        {
+            var currentUserId = _currentUserService.UserId;
+            if (currentUserId == null) return Unauthorized();
+
+            var note = new PatientNote
+            {
+                PatientId = id,
+                AuthorUserId = currentUserId.Value,
+                Timestamp = DateTime.Now, // Automatische tijdstempel
+                Content = dto.Content
+            };
+
+            _context.PatientNotes.Add(note);
+
+            // Registreer in Audit Trail (Eis US8)
+            _context.AuditLogs.Add(new AuditLog
+            {
+                UserId = currentUserId.Value,
+                Action = "Notitie Toegevoegd",
+                Timestamp = DateTime.Now,
+                Details = $"Nieuwe notitie voor patiënt {id}"
+            });
+
+            await _context.SaveChangesAsync();
+            return Ok();
+        }
+
+        [HttpPut("{id}/notes/{noteId}")]
+        public async Task<IActionResult> UpdateNote(int id, int noteId, [FromBody] string content)
+        {
+            var note = await _context.PatientNotes.FindAsync(noteId);
+            if (note == null || note.AuthorUserId != _currentUserService.UserId) return Forbid();
+
+            note.Content = content;
+            note.Timestamp = DateTime.Now;
+            await _context.SaveChangesAsync();
+            return Ok(note);
+        }
+
+        [HttpDelete("{id}/notes/{noteId}")]
+        public async Task<IActionResult> DeleteNote(int id, int noteId)
+        {
+            var note = await _context.PatientNotes.FindAsync(noteId);
+            if (note == null || note.AuthorUserId != _currentUserService.UserId) return Forbid();
+
+            _context.PatientNotes.Remove(note);
+            await _context.SaveChangesAsync();
+            return Ok();
         }
     }
 }

@@ -18,11 +18,11 @@ namespace RevaliInstruct.Core.Data
         public DbSet<PainEntry> PainEntries => Set<PainEntry>();
         public DbSet<ActivityLogEntry> ActivityLogs => Set<ActivityLogEntry>();
         public DbSet<Appointment> Appointments => Set<Appointment>();
-        public DbSet<PatientNote> PatientNotes => Set<PatientNote>();
         public DbSet<AccessoryAdvice> AccessoryAdvices => Set<AccessoryAdvice>();
         public DbSet<IntakeRecord> IntakeRecords => Set<IntakeRecord>();
         public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
         public DbSet<Declaration> Declarations => Set<Declaration>();
+        public DbSet<PatientNote> PatientNotes => Set<PatientNote>();
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
 {

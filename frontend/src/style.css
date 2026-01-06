@@ -133,6 +133,10 @@ h2 {
     letter-spacing: 0.5px;
 }
 
+h4 {
+  margin-bottom: 10px;
+}
+
 button,
 input[type="submit"] {
     cursor: pointer;

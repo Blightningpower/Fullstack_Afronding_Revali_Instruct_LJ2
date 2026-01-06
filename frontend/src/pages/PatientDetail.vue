@@ -28,6 +28,9 @@
 
           <DeclarationsSection :patientId="patient.id || patient.Id"
             :declarations="patient.declarations || patient.Declarations" @refresh="load" />
+
+          <NotesSection :patientId="patient.id || patient.Id" :notes="patient.patientNotes || patient.PatientNotes"
+            @refresh="load" />
         </div>
       </div>
     </div>
@@ -47,6 +50,7 @@ import MedicationAndAccessories from '../components/patient/MedicationAndAccesso
 import AppointmentsSection from '../components/patient/AppointmentsSection.vue';
 import IntakeSection from '../components/patient/IntakeSection.vue';
 import DeclarationsSection from '../components/patient/DeclarationsSection.vue';
+import NotesSection from '../components/patient/NotesSection.vue';
 
 const route = useRoute();
 const patient = ref(null);
