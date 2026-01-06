@@ -492,16 +492,16 @@ namespace RevaliInstruct.Core.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<DateTime>("AppointmentDateTime")
+                    b.Property<DateTime>("DateTime")
                         .HasColumnType("datetime2");
 
-                    b.Property<int>("DoctorId")
+                    b.Property<int?>("DoctorId")
                         .HasColumnType("int");
 
-                    b.Property<int>("DurationMinutes")
+                    b.Property<int>("Duration")
                         .HasColumnType("int");
 
-                    b.Property<int>("PatientId")
+                    b.Property<int?>("PatientId")
                         .HasColumnType("int");
 
                     b.Property<string>("Status")
@@ -522,9 +522,9 @@ namespace RevaliInstruct.Core.Migrations
                         new
                         {
                             Id = 1,
-                            AppointmentDateTime = new DateTime(2025, 1, 10, 14, 0, 0, 0, DateTimeKind.Unspecified),
+                            DateTime = new DateTime(2025, 1, 10, 14, 0, 0, 0, DateTimeKind.Unspecified),
                             DoctorId = 5,
-                            DurationMinutes = 60,
+                            Duration = 60,
                             PatientId = 1,
                             Status = "Afgerond",
                             Type = "Intake"
@@ -532,9 +532,9 @@ namespace RevaliInstruct.Core.Migrations
                         new
                         {
                             Id = 2,
-                            AppointmentDateTime = new DateTime(2025, 1, 31, 10, 0, 0, 0, DateTimeKind.Unspecified),
+                            DateTime = new DateTime(2025, 1, 31, 10, 0, 0, 0, DateTimeKind.Unspecified),
                             DoctorId = 5,
-                            DurationMinutes = 45,
+                            Duration = 45,
                             PatientId = 1,
                             Status = "Afgerond",
                             Type = "Controle"
@@ -542,9 +542,9 @@ namespace RevaliInstruct.Core.Migrations
                         new
                         {
                             Id = 3,
-                            AppointmentDateTime = new DateTime(2025, 2, 21, 11, 0, 0, 0, DateTimeKind.Unspecified),
+                            DateTime = new DateTime(2025, 2, 21, 11, 0, 0, 0, DateTimeKind.Unspecified),
                             DoctorId = 5,
-                            DurationMinutes = 45,
+                            Duration = 45,
                             PatientId = 1,
                             Status = "Afgerond",
                             Type = "Controle"
@@ -552,9 +552,9 @@ namespace RevaliInstruct.Core.Migrations
                         new
                         {
                             Id = 4,
-                            AppointmentDateTime = new DateTime(2025, 3, 14, 13, 0, 0, 0, DateTimeKind.Unspecified),
+                            DateTime = new DateTime(2025, 3, 14, 13, 0, 0, 0, DateTimeKind.Unspecified),
                             DoctorId = 5,
-                            DurationMinutes = 30,
+                            Duration = 30,
                             PatientId = 1,
                             Status = "Afgerond",
                             Type = "Controle"
@@ -562,9 +562,9 @@ namespace RevaliInstruct.Core.Migrations
                         new
                         {
                             Id = 5,
-                            AppointmentDateTime = new DateTime(2025, 4, 4, 9, 0, 0, 0, DateTimeKind.Unspecified),
+                            DateTime = new DateTime(2025, 4, 4, 9, 0, 0, 0, DateTimeKind.Unspecified),
                             DoctorId = 5,
-                            DurationMinutes = 30,
+                            Duration = 30,
                             PatientId = 1,
                             Status = "Gepland",
                             Type = "Controle"
@@ -572,9 +572,9 @@ namespace RevaliInstruct.Core.Migrations
                         new
                         {
                             Id = 6,
-                            AppointmentDateTime = new DateTime(2025, 4, 25, 10, 0, 0, 0, DateTimeKind.Unspecified),
+                            DateTime = new DateTime(2025, 4, 25, 10, 0, 0, 0, DateTimeKind.Unspecified),
                             DoctorId = 5,
-                            DurationMinutes = 30,
+                            Duration = 30,
                             PatientId = 1,
                             Status = "Gepland",
                             Type = "Controle"
@@ -582,9 +582,9 @@ namespace RevaliInstruct.Core.Migrations
                         new
                         {
                             Id = 7,
-                            AppointmentDateTime = new DateTime(2025, 2, 1, 9, 0, 0, 0, DateTimeKind.Unspecified),
+                            DateTime = new DateTime(2025, 2, 1, 9, 0, 0, 0, DateTimeKind.Unspecified),
                             DoctorId = 6,
-                            DurationMinutes = 60,
+                            Duration = 60,
                             PatientId = 2,
                             Status = "Afgerond",
                             Type = "Intake"
@@ -592,9 +592,9 @@ namespace RevaliInstruct.Core.Migrations
                         new
                         {
                             Id = 8,
-                            AppointmentDateTime = new DateTime(2025, 2, 22, 14, 0, 0, 0, DateTimeKind.Unspecified),
+                            DateTime = new DateTime(2025, 2, 22, 14, 0, 0, 0, DateTimeKind.Unspecified),
                             DoctorId = 6,
-                            DurationMinutes = 45,
+                            Duration = 45,
                             PatientId = 2,
                             Status = "Afgerond",
                             Type = "Controle"
@@ -602,9 +602,9 @@ namespace RevaliInstruct.Core.Migrations
                         new
                         {
                             Id = 9,
-                            AppointmentDateTime = new DateTime(2025, 3, 15, 10, 0, 0, 0, DateTimeKind.Unspecified),
+                            DateTime = new DateTime(2025, 3, 15, 10, 0, 0, 0, DateTimeKind.Unspecified),
                             DoctorId = 6,
-                            DurationMinutes = 45,
+                            Duration = 45,
                             PatientId = 2,
                             Status = "Gepland",
                             Type = "Gepland"
@@ -612,9 +612,9 @@ namespace RevaliInstruct.Core.Migrations
                         new
                         {
                             Id = 10,
-                            AppointmentDateTime = new DateTime(2025, 4, 5, 11, 0, 0, 0, DateTimeKind.Unspecified),
+                            DateTime = new DateTime(2025, 4, 5, 11, 0, 0, 0, DateTimeKind.Unspecified),
                             DoctorId = 6,
-                            DurationMinutes = 30,
+                            Duration = 30,
                             PatientId = 2,
                             Status = "Gepland",
                             Type = "Controle"
@@ -622,9 +622,9 @@ namespace RevaliInstruct.Core.Migrations
                         new
                         {
                             Id = 11,
-                            AppointmentDateTime = new DateTime(2025, 1, 15, 16, 0, 0, 0, DateTimeKind.Unspecified),
+                            DateTime = new DateTime(2025, 1, 15, 16, 0, 0, 0, DateTimeKind.Unspecified),
                             DoctorId = 5,
-                            DurationMinutes = 60,
+                            Duration = 60,
                             PatientId = 3,
                             Status = "Afgerond",
                             Type = "Intake"
@@ -632,9 +632,9 @@ namespace RevaliInstruct.Core.Migrations
                         new
                         {
                             Id = 12,
-                            AppointmentDateTime = new DateTime(2025, 2, 5, 15, 0, 0, 0, DateTimeKind.Unspecified),
+                            DateTime = new DateTime(2025, 2, 5, 15, 0, 0, 0, DateTimeKind.Unspecified),
                             DoctorId = 5,
-                            DurationMinutes = 45,
+                            Duration = 45,
                             PatientId = 3,
                             Status = "Afgerond",
                             Type = "Controle"
@@ -642,9 +642,9 @@ namespace RevaliInstruct.Core.Migrations
                         new
                         {
                             Id = 13,
-                            AppointmentDateTime = new DateTime(2025, 2, 26, 14, 0, 0, 0, DateTimeKind.Unspecified),
+                            DateTime = new DateTime(2025, 2, 26, 14, 0, 0, 0, DateTimeKind.Unspecified),
                             DoctorId = 5,
-                            DurationMinutes = 30,
+                            Duration = 30,
                             PatientId = 3,
                             Status = "Gepland",
                             Type = "Controle"
@@ -652,9 +652,9 @@ namespace RevaliInstruct.Core.Migrations
                         new
                         {
                             Id = 14,
-                            AppointmentDateTime = new DateTime(2025, 2, 5, 10, 0, 0, 0, DateTimeKind.Unspecified),
+                            DateTime = new DateTime(2025, 2, 5, 10, 0, 0, 0, DateTimeKind.Unspecified),
                             DoctorId = 7,
-                            DurationMinutes = 60,
+                            Duration = 60,
                             PatientId = 4,
                             Status = "Afgerond",
                             Type = "Intake"
@@ -662,9 +662,9 @@ namespace RevaliInstruct.Core.Migrations
                         new
                         {
                             Id = 15,
-                            AppointmentDateTime = new DateTime(2025, 2, 26, 11, 0, 0, 0, DateTimeKind.Unspecified),
+                            DateTime = new DateTime(2025, 2, 26, 11, 0, 0, 0, DateTimeKind.Unspecified),
                             DoctorId = 7,
-                            DurationMinutes = 45,
+                            Duration = 45,
                             PatientId = 4,
                             Status = "Afgerond",
                             Type = "Controle"
@@ -672,9 +672,9 @@ namespace RevaliInstruct.Core.Migrations
                         new
                         {
                             Id = 16,
-                            AppointmentDateTime = new DateTime(2025, 3, 19, 13, 0, 0, 0, DateTimeKind.Unspecified),
+                            DateTime = new DateTime(2025, 3, 19, 13, 0, 0, 0, DateTimeKind.Unspecified),
                             DoctorId = 7,
-                            DurationMinutes = 30,
+                            Duration = 30,
                             PatientId = 4,
                             Status = "Gepland",
                             Type = "Controle"
@@ -682,9 +682,9 @@ namespace RevaliInstruct.Core.Migrations
                         new
                         {
                             Id = 17,
-                            AppointmentDateTime = new DateTime(2025, 3, 1, 9, 0, 0, 0, DateTimeKind.Unspecified),
+                            DateTime = new DateTime(2025, 3, 1, 9, 0, 0, 0, DateTimeKind.Unspecified),
                             DoctorId = 6,
-                            DurationMinutes = 60,
+                            Duration = 60,
                             PatientId = 5,
                             Status = "Afgerond",
                             Type = "Intake"
@@ -692,9 +692,9 @@ namespace RevaliInstruct.Core.Migrations
                         new
                         {
                             Id = 18,
-                            AppointmentDateTime = new DateTime(2025, 3, 22, 10, 0, 0, 0, DateTimeKind.Unspecified),
+                            DateTime = new DateTime(2025, 3, 22, 10, 0, 0, 0, DateTimeKind.Unspecified),
                             DoctorId = 6,
-                            DurationMinutes = 45,
+                            Duration = 45,
                             PatientId = 5,
                             Status = "Gepland",
                             Type = "Controle"
@@ -702,9 +702,9 @@ namespace RevaliInstruct.Core.Migrations
                         new
                         {
                             Id = 19,
-                            AppointmentDateTime = new DateTime(2025, 2, 10, 14, 0, 0, 0, DateTimeKind.Unspecified),
+                            DateTime = new DateTime(2025, 2, 10, 14, 0, 0, 0, DateTimeKind.Unspecified),
                             DoctorId = 5,
-                            DurationMinutes = 60,
+                            Duration = 60,
                             PatientId = 6,
                             Status = "Afgerond",
                             Type = "Intake"
@@ -712,9 +712,9 @@ namespace RevaliInstruct.Core.Migrations
                         new
                         {
                             Id = 20,
-                            AppointmentDateTime = new DateTime(2025, 3, 3, 15, 0, 0, 0, DateTimeKind.Unspecified),
+                            DateTime = new DateTime(2025, 3, 3, 15, 0, 0, 0, DateTimeKind.Unspecified),
                             DoctorId = 5,
-                            DurationMinutes = 45,
+                            Duration = 45,
                             PatientId = 6,
                             Status = "Gepland",
                             Type = "Controle"
@@ -749,6 +749,8 @@ namespace RevaliInstruct.Core.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("PatientId");
+
+                    b.HasIndex("UserId");
 
                     b.ToTable("AuditLogs");
                 });
@@ -3126,6 +3128,7 @@ namespace RevaliInstruct.Core.Migrations
                             Id = 1,
                             FirstName = "Sophie",
                             LastName = "Jansen",
+                            OrganisatieId = 1,
                             PasswordHash = "$2y$10$9mIxp6HbC1KobigZYb0qUu98xe11w45XH1kvPKX2qZ44BsF2qObDy",
                             Role = "Zorgverzekeraar",
                             Username = "zvm_jansen"
@@ -3135,6 +3138,7 @@ namespace RevaliInstruct.Core.Migrations
                             Id = 2,
                             FirstName = "Mark",
                             LastName = "de Vries",
+                            OrganisatieId = 2,
                             PasswordHash = "$2y$10$9mIxp6HbC1KobigZYb0qUu98xe11w45XH1kvPKX2qZ44BsF2qObDy",
                             Role = "Zorgverzekeraar",
                             Username = "zvm_devries"
@@ -3198,7 +3202,7 @@ namespace RevaliInstruct.Core.Migrations
             modelBuilder.Entity("RevaliInstruct.Core.Entities.ActivityLogEntry", b =>
                 {
                     b.HasOne("RevaliInstruct.Core.Entities.Patient", null)
-                        .WithMany("ActivityLogs")
+                        .WithMany("ActivityLogEntries")
                         .HasForeignKey("PatientId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -3208,9 +3212,7 @@ namespace RevaliInstruct.Core.Migrations
                 {
                     b.HasOne("RevaliInstruct.Core.Entities.Patient", null)
                         .WithMany("Appointments")
-                        .HasForeignKey("PatientId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .HasForeignKey("PatientId");
                 });
 
             modelBuilder.Entity("RevaliInstruct.Core.Entities.AuditLog", b =>
@@ -3218,6 +3220,12 @@ namespace RevaliInstruct.Core.Migrations
                     b.HasOne("RevaliInstruct.Core.Entities.Patient", null)
                         .WithMany("AuditLogs")
                         .HasForeignKey("PatientId");
+
+                    b.HasOne("RevaliInstruct.Core.Entities.User", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("RevaliInstruct.Core.Entities.ExerciseAssignment", b =>
@@ -3297,7 +3305,7 @@ namespace RevaliInstruct.Core.Migrations
                 {
                     b.Navigation("AccessoryAdvices");
 
-                    b.Navigation("ActivityLogs");
+                    b.Navigation("ActivityLogEntries");
 
                     b.Navigation("Appointments");
 

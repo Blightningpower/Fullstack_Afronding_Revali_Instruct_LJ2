@@ -182,5 +182,85 @@ namespace RevaliInstruct.Api.Controllers
 
             return Ok(new { message = "Oefening succesvol toegewezen" });
         }
+
+        [HttpPost("{id}/appointments")]
+        public async Task<IActionResult> CreateAppointment(int id, [FromBody] Appointment appointment)
+        {
+            var currentUserId = _currentUserService.UserId;
+            if (currentUserId == null) return Unauthorized();
+
+            // Controleer of patiënt bij de arts hoort
+            var patient = await _context.Patients
+                .FirstOrDefaultAsync(p => p.Id == id && p.AssignedDoctorUserId == currentUserId);
+            if (patient == null) return NotFound("Patiënt niet gevonden.");
+
+            appointment.PatientId = id;
+            appointment.DoctorId = currentUserId.Value;
+            appointment.Status = "Gepland";
+
+            _context.Appointments.Add(appointment);
+
+            // Audit Trail: Log de aanmaak
+            _context.AuditLogs.Add(new AuditLog
+            {
+                UserId = currentUserId.Value,
+                Action = "Afspraak Gepland",
+                Timestamp = DateTime.Now,
+                Details = $"Patiënt ID: {id}, Type: {appointment.Type}, Datum: {appointment.DateTime}"
+            });
+
+            await _context.SaveChangesAsync();
+            return Ok(appointment);
+        }
+
+        [HttpPut("{id}/appointments/{appId}")]
+        public async Task<IActionResult> UpdateAppointment(int id, int appId, [FromBody] Appointment dto)
+        {
+            var currentUserId = _currentUserService.UserId;
+            if (currentUserId == null) return Unauthorized();
+
+            var app = await _context.Appointments.FirstOrDefaultAsync(a => a.Id == appId && a.PatientId == id);
+            if (app == null) return NotFound("Afspraak niet gevonden.");
+
+            // Wijzigingen doorvoeren
+            app.DateTime = dto.DateTime;
+            app.Duration = dto.Duration;
+            app.Type = dto.Type;
+
+            // Audit Trail: Log de wijziging
+            _context.AuditLogs.Add(new AuditLog
+            {
+                UserId = currentUserId.Value,
+                Action = "Afspraak Gewijzigd",
+                Timestamp = DateTime.Now,
+                Details = $"Afspraak ID: {appId}, Nieuw type: {dto.Type}, Nieuwe datum: {dto.DateTime}"
+            });
+
+            await _context.SaveChangesAsync();
+            return Ok(app);
+        }
+
+        [HttpPatch("{id}/appointments/{appId}/cancel")]
+        public async Task<IActionResult> CancelAppointment(int id, int appId)
+        {
+            var currentUserId = _currentUserService.UserId;
+            if (currentUserId == null) return Unauthorized();
+
+            var app = await _context.Appointments.FirstOrDefaultAsync(a => a.Id == appId && a.PatientId == id);
+            if (app == null) return NotFound("Afspraak niet gevonden.");
+
+            app.Status = "Geannuleerd";
+
+            _context.AuditLogs.Add(new AuditLog
+            {
+                UserId = currentUserId.Value,
+                Action = "Afspraak Geannuleerd",
+                Timestamp = DateTime.Now,
+                Details = $"Afspraak ID: {appId} geannuleerd voor patiënt {id}"
+            });
+
+            await _context.SaveChangesAsync();
+            return Ok(new { message = "Afspraak succesvol geannuleerd." });
+        }
     }
 }

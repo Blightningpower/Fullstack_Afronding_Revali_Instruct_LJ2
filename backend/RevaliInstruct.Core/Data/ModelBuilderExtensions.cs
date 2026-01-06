@@ -241,26 +241,26 @@ namespace RevaliInstruct.Core.Data
 
             // 9. Afspraken
             modelBuilder.Entity<Appointment>().HasData(
-                new Appointment { Id = 1, PatientId = 1, DoctorId = 5, AppointmentDateTime = new DateTime(2025, 1, 10, 14, 0, 0), DurationMinutes = 60, Type = "Intake", Status = "Afgerond" },
-                new Appointment { Id = 2, PatientId = 1, DoctorId = 5, AppointmentDateTime = new DateTime(2025, 1, 31, 10, 0, 0), DurationMinutes = 45, Type = "Controle", Status = "Afgerond" },
-                new Appointment { Id = 3, PatientId = 1, DoctorId = 5, AppointmentDateTime = new DateTime(2025, 2, 21, 11, 0, 0), DurationMinutes = 45, Type = "Controle", Status = "Afgerond" },
-                new Appointment { Id = 4, PatientId = 1, DoctorId = 5, AppointmentDateTime = new DateTime(2025, 3, 14, 13, 0, 0), DurationMinutes = 30, Type = "Controle", Status = "Afgerond" },
-                new Appointment { Id = 5, PatientId = 1, DoctorId = 5, AppointmentDateTime = new DateTime(2025, 4, 4, 09, 0, 0), DurationMinutes = 30, Type = "Controle", Status = "Gepland" },
-                new Appointment { Id = 6, PatientId = 1, DoctorId = 5, AppointmentDateTime = new DateTime(2025, 4, 25, 10, 0, 0), DurationMinutes = 30, Type = "Controle", Status = "Gepland" },
-                new Appointment { Id = 7, PatientId = 2, DoctorId = 6, AppointmentDateTime = new DateTime(2025, 2, 1, 09, 0, 0), DurationMinutes = 60, Type = "Intake", Status = "Afgerond" },
-                new Appointment { Id = 8, PatientId = 2, DoctorId = 6, AppointmentDateTime = new DateTime(2025, 2, 22, 14, 0, 0), DurationMinutes = 45, Type = "Controle", Status = "Afgerond" },
-                new Appointment { Id = 9, PatientId = 2, DoctorId = 6, AppointmentDateTime = new DateTime(2025, 3, 15, 10, 0, 0), DurationMinutes = 45, Type = "Gepland", Status = "Gepland" },
-                new Appointment { Id = 10, PatientId = 2, DoctorId = 6, AppointmentDateTime = new DateTime(2025, 4, 5, 11, 0, 0), DurationMinutes = 30, Type = "Controle", Status = "Gepland" },
-                new Appointment { Id = 11, PatientId = 3, DoctorId = 5, AppointmentDateTime = new DateTime(2025, 1, 15, 16, 0, 0), DurationMinutes = 60, Type = "Intake", Status = "Afgerond" },
-                new Appointment { Id = 12, PatientId = 3, DoctorId = 5, AppointmentDateTime = new DateTime(2025, 2, 5, 15, 0, 0), DurationMinutes = 45, Type = "Controle", Status = "Afgerond" },
-                new Appointment { Id = 13, PatientId = 3, DoctorId = 5, AppointmentDateTime = new DateTime(2025, 2, 26, 14, 0, 0), DurationMinutes = 30, Type = "Controle", Status = "Gepland" },
-                new Appointment { Id = 14, PatientId = 4, DoctorId = 7, AppointmentDateTime = new DateTime(2025, 2, 5, 10, 0, 0), DurationMinutes = 60, Type = "Intake", Status = "Afgerond" },
-                new Appointment { Id = 15, PatientId = 4, DoctorId = 7, AppointmentDateTime = new DateTime(2025, 2, 26, 11, 0, 0), DurationMinutes = 45, Type = "Controle", Status = "Afgerond" },
-                new Appointment { Id = 16, PatientId = 4, DoctorId = 7, AppointmentDateTime = new DateTime(2025, 3, 19, 13, 0, 0), DurationMinutes = 30, Type = "Controle", Status = "Gepland" },
-                new Appointment { Id = 17, PatientId = 5, DoctorId = 6, AppointmentDateTime = new DateTime(2025, 3, 1, 09, 0, 0), DurationMinutes = 60, Type = "Intake", Status = "Afgerond" },
-                new Appointment { Id = 18, PatientId = 5, DoctorId = 6, AppointmentDateTime = new DateTime(2025, 3, 22, 10, 0, 0), DurationMinutes = 45, Type = "Controle", Status = "Gepland" },
-                new Appointment { Id = 19, PatientId = 6, DoctorId = 5, AppointmentDateTime = new DateTime(2025, 2, 10, 14, 0, 0), DurationMinutes = 60, Type = "Intake", Status = "Afgerond" },
-                new Appointment { Id = 20, PatientId = 6, DoctorId = 5, AppointmentDateTime = new DateTime(2025, 3, 3, 15, 0, 0), DurationMinutes = 45, Type = "Controle", Status = "Gepland" }
+                new Appointment { Id = 1, PatientId = 1, DoctorId = 5, DateTime = new DateTime(2025, 1, 10, 14, 0, 0), Duration = 60, Type = "Intake", Status = "Afgerond" },
+                new Appointment { Id = 2, PatientId = 1, DoctorId = 5, DateTime = new DateTime(2025, 1, 31, 10, 0, 0), Duration = 45, Type = "Controle", Status = "Afgerond" },
+                new Appointment { Id = 3, PatientId = 1, DoctorId = 5, DateTime = new DateTime(2025, 2, 21, 11, 0, 0), Duration = 45, Type = "Controle", Status = "Afgerond" },
+                new Appointment { Id = 4, PatientId = 1, DoctorId = 5, DateTime = new DateTime(2025, 3, 14, 13, 0, 0), Duration = 30, Type = "Controle", Status = "Afgerond" },
+                new Appointment { Id = 5, PatientId = 1, DoctorId = 5, DateTime = new DateTime(2025, 4, 4, 09, 0, 0), Duration = 30, Type = "Controle", Status = "Gepland" },
+                new Appointment { Id = 6, PatientId = 1, DoctorId = 5, DateTime = new DateTime(2025, 4, 25, 10, 0, 0), Duration = 30, Type = "Controle", Status = "Gepland" },
+                new Appointment { Id = 7, PatientId = 2, DoctorId = 6, DateTime = new DateTime(2025, 2, 1, 09, 0, 0), Duration = 60, Type = "Intake", Status = "Afgerond" },
+                new Appointment { Id = 8, PatientId = 2, DoctorId = 6, DateTime = new DateTime(2025, 2, 22, 14, 0, 0), Duration = 45, Type = "Controle", Status = "Afgerond" },
+                new Appointment { Id = 9, PatientId = 2, DoctorId = 6, DateTime = new DateTime(2025, 3, 15, 10, 0, 0), Duration = 45, Type = "Gepland", Status = "Gepland" },
+                new Appointment { Id = 10, PatientId = 2, DoctorId = 6, DateTime = new DateTime(2025, 4, 5, 11, 0, 0), Duration = 30, Type = "Controle", Status = "Gepland" },
+                new Appointment { Id = 11, PatientId = 3, DoctorId = 5, DateTime = new DateTime(2025, 1, 15, 16, 0, 0), Duration = 60, Type = "Intake", Status = "Afgerond" },
+                new Appointment { Id = 12, PatientId = 3, DoctorId = 5, DateTime = new DateTime(2025, 2, 5, 15, 0, 0), Duration = 45, Type = "Controle", Status = "Afgerond" },
+                new Appointment { Id = 13, PatientId = 3, DoctorId = 5, DateTime = new DateTime(2025, 2, 26, 14, 0, 0), Duration = 30, Type = "Controle", Status = "Gepland" },
+                new Appointment { Id = 14, PatientId = 4, DoctorId = 7, DateTime = new DateTime(2025, 2, 5, 10, 0, 0), Duration = 60, Type = "Intake", Status = "Afgerond" },
+                new Appointment { Id = 15, PatientId = 4, DoctorId = 7, DateTime = new DateTime(2025, 2, 26, 11, 0, 0), Duration = 45, Type = "Controle", Status = "Afgerond" },
+                new Appointment { Id = 16, PatientId = 4, DoctorId = 7, DateTime = new DateTime(2025, 3, 19, 13, 0, 0), Duration = 30, Type = "Controle", Status = "Gepland" },
+                new Appointment { Id = 17, PatientId = 5, DoctorId = 6, DateTime = new DateTime(2025, 3, 1, 09, 0, 0), Duration = 60, Type = "Intake", Status = "Afgerond" },
+                new Appointment { Id = 18, PatientId = 5, DoctorId = 6, DateTime = new DateTime(2025, 3, 22, 10, 0, 0), Duration = 45, Type = "Controle", Status = "Gepland" },
+                new Appointment { Id = 19, PatientId = 6, DoctorId = 5, DateTime = new DateTime(2025, 2, 10, 14, 0, 0), Duration = 60, Type = "Intake", Status = "Afgerond" },
+                new Appointment { Id = 20, PatientId = 6, DoctorId = 5, DateTime = new DateTime(2025, 3, 3, 15, 0, 0), Duration = 45, Type = "Controle", Status = "Gepland" }
             );
 
             // 10. Intakegesprekken

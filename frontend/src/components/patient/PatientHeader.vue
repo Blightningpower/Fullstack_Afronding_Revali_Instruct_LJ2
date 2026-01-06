@@ -28,3 +28,19 @@ const STATUS_MAP = {
 const statusLabel = computed(() => STATUS_MAP[String(props.patient.status)]?.label || 'Onbekend');
 const statusClass = computed(() => STATUS_MAP[String(props.patient.status)]?.class || 'status-default');
 </script>
+
+<style scoped>
+    .patient-avatar {
+    width: 90px;
+    height: 90px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #3bb3ce 0%, #4ee3c1 100%);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2.2rem;
+    font-weight: 700;
+    box-shadow: 0 4px 16px rgba(59, 179, 206, 0.25);
+}
+</style>

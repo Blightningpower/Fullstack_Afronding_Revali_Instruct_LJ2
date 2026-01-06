@@ -29,7 +29,6 @@ namespace RevaliInstruct.Core.Entities
         public ICollection<Appointment> Appointments { get; set; } = new List<Appointment>();
         public ICollection<ExerciseAssignment> Exercises { get; set; } = new List<ExerciseAssignment>();
         public ICollection<PatientNote> PatientNotes { get; set; } = new List<PatientNote>();
-        public ICollection<ActivityLogEntry> ActivityLogs { get; set; } = new List<ActivityLogEntry>();
         public ICollection<Medication> Medications { get; set; } = new List<Medication>();
         public ICollection<AccessoryAdvice> AccessoryAdvices { get; set; } = new List<AccessoryAdvice>();
         public ICollection<IntakeRecord> IntakeRecords { get; set; } = new List<IntakeRecord>();

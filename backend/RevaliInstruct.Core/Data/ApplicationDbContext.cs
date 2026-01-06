@@ -24,17 +24,23 @@ namespace RevaliInstruct.Core.Data
         public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
-        {
-            base.OnModelCreating(modelBuilder);
+{
+    base.OnModelCreating(modelBuilder);
 
-            modelBuilder.ApplyConfigurationsFromAssembly(typeof(ApplicationDbContext).Assembly);
+    modelBuilder.ApplyConfigurationsFromAssembly(typeof(ApplicationDbContext).Assembly);
 
-            modelBuilder.Entity<Patient>()
-                .HasMany(p => p.ActivityLogEntries)
-                .WithOne()
-                .HasForeignKey("PatientId");
+    modelBuilder.Entity<ActivityLogEntry>()
+        .HasOne<Patient>()
+        .WithMany(p => p.ActivityLogEntries)
+        .HasForeignKey(a => a.PatientId)
+        .OnDelete(DeleteBehavior.Cascade);
 
-            modelBuilder.Seed();
-        }
+    modelBuilder.Entity<AuditLog>()
+        .HasOne<User>()
+        .WithMany()
+        .HasForeignKey(a => a.UserId);
+
+    modelBuilder.Seed();
+}
     }
 }

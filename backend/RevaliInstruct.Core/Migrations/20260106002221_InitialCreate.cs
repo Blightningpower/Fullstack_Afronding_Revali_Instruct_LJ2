@@ -8,7 +8,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace RevaliInstruct.Core.Migrations
 {
     /// <inheritdoc />
-    public partial class RemoveRedundantNotesColumn : Migration
+    public partial class InitialCreate : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -131,10 +131,10 @@ namespace RevaliInstruct.Core.Migrations
                 {
                     Id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
-                    PatientId = table.Column<int>(type: "int", nullable: false),
-                    DoctorId = table.Column<int>(type: "int", nullable: false),
-                    AppointmentDateTime = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    DurationMinutes = table.Column<int>(type: "int", nullable: false),
+                    PatientId = table.Column<int>(type: "int", nullable: true),
+                    DoctorId = table.Column<int>(type: "int", nullable: true),
+                    DateTime = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    Duration = table.Column<int>(type: "int", nullable: false),
                     Type = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     Status = table.Column<string>(type: "nvarchar(max)", nullable: false)
                 },
@@ -145,8 +145,7 @@ namespace RevaliInstruct.Core.Migrations
                         name: "FK_Appointments_Patients_PatientId",
                         column: x => x.PatientId,
                         principalTable: "Patients",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
+                        principalColumn: "Id");
                 });
 
             migrationBuilder.CreateTable(
@@ -169,6 +168,12 @@ namespace RevaliInstruct.Core.Migrations
                         column: x => x.PatientId,
                         principalTable: "Patients",
                         principalColumn: "Id");
+                    table.ForeignKey(
+                        name: "FK_AuditLogs_Users_UserId",
+                        column: x => x.UserId,
+                        principalTable: "Users",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateTable(
@@ -316,8 +321,8 @@ namespace RevaliInstruct.Core.Migrations
                 columns: new[] { "Id", "FirstName", "LastName", "OrganisatieId", "PasswordHash", "Role", "Username" },
                 values: new object[,]
                 {
-                    { 1, "Sophie", "Jansen", null, "$2y$10$9mIxp6HbC1KobigZYb0qUu98xe11w45XH1kvPKX2qZ44BsF2qObDy", "Zorgverzekeraar", "zvm_jansen" },
-                    { 2, "Mark", "de Vries", null, "$2y$10$9mIxp6HbC1KobigZYb0qUu98xe11w45XH1kvPKX2qZ44BsF2qObDy", "Zorgverzekeraar", "zvm_devries" },
+                    { 1, "Sophie", "Jansen", 1, "$2y$10$9mIxp6HbC1KobigZYb0qUu98xe11w45XH1kvPKX2qZ44BsF2qObDy", "Zorgverzekeraar", "zvm_jansen" },
+                    { 2, "Mark", "de Vries", 2, "$2y$10$9mIxp6HbC1KobigZYb0qUu98xe11w45XH1kvPKX2qZ44BsF2qObDy", "Zorgverzekeraar", "zvm_devries" },
                     { 3, "Lisa", "Bakker", null, "$2y$10$9mIxp6HbC1KobigZYb0qUu98xe11w45XH1kvPKX2qZ44BsF2qObDy", "Huisarts", "ha_bakker" },
                     { 4, "Thomas", "Janssen", null, "$2y$10$9mIxp6HbC1KobigZYb0qUu98xe11w45XH1kvPKX2qZ44BsF2qObDy", "Huisarts", "ha_janssen" },
                     { 5, "Emma", "Smit", null, "$2y$10$9mIxp6HbC1KobigZYb0qUu98xe11w45XH1kvPKX2qZ44BsF2qObDy", "Revalidatiearts", "ra_smit" },
@@ -419,7 +424,7 @@ namespace RevaliInstruct.Core.Migrations
 
             migrationBuilder.InsertData(
                 table: "Appointments",
-                columns: new[] { "Id", "AppointmentDateTime", "DoctorId", "DurationMinutes", "PatientId", "Status", "Type" },
+                columns: new[] { "Id", "DateTime", "DoctorId", "Duration", "PatientId", "Status", "Type" },
                 values: new object[,]
                 {
                     { 1, new DateTime(2025, 1, 10, 14, 0, 0, 0, DateTimeKind.Unspecified), 5, 60, 1, "Afgerond", "Intake" },
@@ -642,6 +647,11 @@ namespace RevaliInstruct.Core.Migrations
                 name: "IX_AuditLogs_PatientId",
                 table: "AuditLogs",
                 column: "PatientId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_AuditLogs_UserId",
+                table: "AuditLogs",
+                column: "UserId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_ExerciseAssignments_ExerciseId",
