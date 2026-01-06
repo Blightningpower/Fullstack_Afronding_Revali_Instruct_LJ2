@@ -86,6 +86,7 @@ namespace RevaliInstruct.Api.Controllers
                 .Include(p => p.Appointments)
                 .Include(p => p.IntakeRecords)
                 .Include(p => p.PatientNotes)
+                .Include(p => p.Declarations)
                 .AsSplitQuery()
                 .FirstOrDefaultAsync(p => p.Id == id && p.AssignedDoctorUserId == currentUserId);
 
@@ -261,6 +262,56 @@ namespace RevaliInstruct.Api.Controllers
 
             await _context.SaveChangesAsync();
             return Ok(new { message = "Afspraak succesvol geannuleerd." });
+        }
+
+        [HttpPost("{id}/declarations")]
+        public async Task<IActionResult> CreateDeclaration(int id, [FromBody] Declaration dec)
+        {
+            var currentUserId = _currentUserService.UserId;
+            if (currentUserId == null) return Unauthorized();
+
+            if (dec.Amount < 0) return BadRequest("Bedrag mag niet negatief zijn.");
+
+            dec.PatientId = id;
+            dec.DoctorId = currentUserId.Value;
+            dec.Date = DateTime.Now;
+            dec.Status = "Geregistreerd";
+
+            _context.Declarations.Add(dec);
+
+            _context.AuditLogs.Add(new AuditLog
+            {
+                UserId = currentUserId.Value,
+                Action = "Declaratie Geregistreerd",
+                Timestamp = DateTime.Now,
+                Details = $"Patiënt ID: {id}, Type: {dec.TreatmentType}, Bedrag: €{dec.Amount}"
+            });
+
+            await _context.SaveChangesAsync();
+            return Ok(dec);
+        }
+
+        [HttpPatch("{id}/declarations/{decId}/mark-declared")]
+        public async Task<IActionResult> MarkAsDeclared(int id, int decId)
+        {
+            var currentUserId = _currentUserService.UserId;
+            if (currentUserId == null) return Unauthorized();
+
+            var dec = await _context.Declarations.FirstOrDefaultAsync(d => d.Id == decId && d.PatientId == id);
+            if (dec == null) return NotFound();
+
+            dec.Status = "Gedeclareerd";
+
+            _context.AuditLogs.Add(new AuditLog
+            {
+                UserId = currentUserId.Value,
+                Action = "Status Declaratie Gewijzigd",
+                Timestamp = DateTime.Now,
+                Details = $"Declaratie ID: {decId} naar 'Gedeclareerd'"
+            });
+
+            await _context.SaveChangesAsync();
+            return Ok(new { message = "Gemarkeerd als gedeclareerd" });
         }
     }
 }

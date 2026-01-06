@@ -22,6 +22,7 @@ namespace RevaliInstruct.Core.Data
         public DbSet<AccessoryAdvice> AccessoryAdvices => Set<AccessoryAdvice>();
         public DbSet<IntakeRecord> IntakeRecords => Set<IntakeRecord>();
         public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
+        public DbSet<Declaration> Declarations => Set<Declaration>();
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
 {

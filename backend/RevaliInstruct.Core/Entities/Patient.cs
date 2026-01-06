@@ -33,5 +33,6 @@ namespace RevaliInstruct.Core.Entities
         public ICollection<AccessoryAdvice> AccessoryAdvices { get; set; } = new List<AccessoryAdvice>();
         public ICollection<IntakeRecord> IntakeRecords { get; set; } = new List<IntakeRecord>();
         public ICollection<AuditLog> AuditLogs { get; set; } = new List<AuditLog>();
+        public ICollection<Declaration> Declarations { get; set; } = new List<Declaration>();
     }
 }

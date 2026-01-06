@@ -755,6 +755,41 @@ namespace RevaliInstruct.Core.Migrations
                     b.ToTable("AuditLogs");
                 });
 
+            modelBuilder.Entity("RevaliInstruct.Core.Entities.Declaration", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<decimal>("Amount")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime>("Date")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("DoctorId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("PatientId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("TreatmentType")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PatientId");
+
+                    b.ToTable("Declarations");
+                });
+
             modelBuilder.Entity("RevaliInstruct.Core.Entities.Exercise", b =>
                 {
                     b.Property<int>("Id")
@@ -3228,6 +3263,15 @@ namespace RevaliInstruct.Core.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("RevaliInstruct.Core.Entities.Declaration", b =>
+                {
+                    b.HasOne("RevaliInstruct.Core.Entities.Patient", null)
+                        .WithMany("Declarations")
+                        .HasForeignKey("PatientId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("RevaliInstruct.Core.Entities.ExerciseAssignment", b =>
                 {
                     b.HasOne("RevaliInstruct.Core.Entities.Exercise", "Exercise")
@@ -3310,6 +3354,8 @@ namespace RevaliInstruct.Core.Migrations
                     b.Navigation("Appointments");
 
                     b.Navigation("AuditLogs");
+
+                    b.Navigation("Declarations");
 
                     b.Navigation("Exercises");
 

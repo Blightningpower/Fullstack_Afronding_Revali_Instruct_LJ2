@@ -25,6 +25,9 @@
           <IntakeSection :patientId="patient.id || patient.Id"
             :rawIntakes="patient.intakeRecords || patient.IntakeRecords"
             :rawNotes="patient.patientNotes || patient.PatientNotes" @refresh="load" />
+
+          <DeclarationsSection :patientId="patient.id || patient.Id"
+            :declarations="patient.declarations || patient.Declarations" @refresh="load" />
         </div>
       </div>
     </div>
@@ -36,7 +39,6 @@
 import { ref, onMounted } from 'vue';
 import { useRoute } from 'vue-router';
 import { getPatientDossier } from '../api/patients';
-// Imports van componenten...
 import PatientHeader from '../components/patient/PatientHeader.vue';
 import PatientInfoGrid from '../components/patient/PatientInfoGrid.vue';
 import ExerciseSection from '../components/patient/ExerciseSection.vue';
@@ -44,6 +46,7 @@ import PainAndActivity from '../components/patient/PainAndActivity.vue';
 import MedicationAndAccessories from '../components/patient/MedicationAndAccessories.vue';
 import AppointmentsSection from '../components/patient/AppointmentsSection.vue';
 import IntakeSection from '../components/patient/IntakeSection.vue';
+import DeclarationsSection from '../components/patient/DeclarationsSection.vue';
 
 const route = useRoute();
 const patient = ref(null);
