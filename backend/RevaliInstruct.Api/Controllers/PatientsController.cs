@@ -22,18 +22,25 @@ namespace RevaliInstruct.Api.Controllers
             _currentUserService = currentUserService;
         }
 
+        // Helper methode voor US9: Controleert of de patiënt aan deze arts is toegewezen
+        private async Task<bool> HasAccessToPatient(int patientId)
+        {
+            var currentUserId = _currentUserService.UserId;
+            if (currentUserId == null) return false;
+
+            return await _context.Patients
+                .AnyAsync(p => p.Id == patientId && p.AssignedDoctorUserId == currentUserId);
+        }
+
         [HttpGet]
         public async Task<ActionResult<IEnumerable<PatientListItemDto>>> GetPatients(
             [FromQuery] string? searchTerm,
             [FromQuery] string? status)
         {
             var currentUserId = _currentUserService.UserId;
+            if (currentUserId == null) return Unauthorized();
 
-            if (currentUserId == null)
-            {
-                return Unauthorized();
-            }
-
+            // AC 1: Filtert de lijst direct op toegewezen patiënten
             var query = _context.Patients
                 .Where(p => p.AssignedDoctorUserId == currentUserId);
 
@@ -68,12 +75,7 @@ namespace RevaliInstruct.Api.Controllers
         [HttpGet("{id}/dossier")]
         public async Task<ActionResult<Patient>> GetPatient(int id)
         {
-            var currentUserId = _currentUserService.UserId;
-
-            if (currentUserId == null)
-            {
-                return Unauthorized();
-            }
+            if (!await HasAccessToPatient(id)) return Forbid(); // US9 AC 2
 
             var patient = await _context.Patients
                 .Include(p => p.ReferringDoctor)
@@ -89,33 +91,31 @@ namespace RevaliInstruct.Api.Controllers
                 .Include(p => p.PatientNotes)
                     .ThenInclude(n => n.Author)
                 .AsSplitQuery()
-                .FirstOrDefaultAsync(p => p.Id == id && p.AssignedDoctorUserId == currentUserId);
+                .FirstOrDefaultAsync(p => p.Id == id);
 
             if (patient == null) return NotFound();
-
             return Ok(patient);
         }
 
         [HttpPost("{id}/intake")]
         public async Task<IActionResult> CreateIntake(int id, [FromBody] IntakeDto dto)
         {
-            var currentUserId = _currentUserService.UserId;
-            if (currentUserId == null) return Unauthorized();
+            if (!await HasAccessToPatient(id)) return Forbid(); // US9
 
             var patient = await _context.Patients
                 .Include(p => p.IntakeRecords)
-                .FirstOrDefaultAsync(p => p.Id == id && p.AssignedDoctorUserId == currentUserId);
+                .FirstAsync(p => p.Id == id);
 
-            if (patient == null) return NotFound("Patiënt niet gevonden.");
             if (patient.IntakeRecords != null && patient.IntakeRecords.Any())
             {
                 return BadRequest("Er bestaat al een intakeverslag voor deze patiënt.");
             }
 
+            var currentUserId = _currentUserService.UserId!.Value;
             var intake = new IntakeRecord
             {
                 PatientId = id,
-                DoctorId = currentUserId.Value,
+                DoctorId = currentUserId,
                 Diagnosis = dto.Diagnosis,
                 Severity = dto.Severity,
                 Goals = dto.Goals,
@@ -125,7 +125,7 @@ namespace RevaliInstruct.Api.Controllers
             _context.IntakeRecords.Add(intake);
             _context.AuditLogs.Add(new AuditLog
             {
-                UserId = currentUserId.Value,
+                UserId = currentUserId,
                 Action = "Intake Geregistreerd",
                 Timestamp = DateTime.Now,
                 Details = $"Patiënt ID: {id}"
@@ -138,13 +138,7 @@ namespace RevaliInstruct.Api.Controllers
         [HttpPost("{id}/exercises")]
         public async Task<IActionResult> AssignExercise(int id, [FromBody] ExerciseAssignmentDto dto)
         {
-            var currentUserId = _currentUserService.UserId;
-            if (currentUserId == null) return Unauthorized();
-
-            var patientExists = await _context.Patients
-                .AnyAsync(p => p.Id == id && p.AssignedDoctorUserId == currentUserId);
-
-            if (!patientExists) return NotFound("Patiënt niet gevonden of geen toegang.");
+            if (!await HasAccessToPatient(id)) return Forbid(); // US9
 
             var assignment = new ExerciseAssignment
             {
@@ -168,22 +162,17 @@ namespace RevaliInstruct.Api.Controllers
         [HttpPost("{id}/appointments")]
         public async Task<IActionResult> CreateAppointment(int id, [FromBody] Appointment appointment)
         {
-            var currentUserId = _currentUserService.UserId;
-            if (currentUserId == null) return Unauthorized();
+            if (!await HasAccessToPatient(id)) return Forbid(); // US9
 
-            var patient = await _context.Patients
-                .FirstOrDefaultAsync(p => p.Id == id && p.AssignedDoctorUserId == currentUserId);
-            if (patient == null) return NotFound("Patiënt niet gevonden.");
-
+            var currentUserId = _currentUserService.UserId!.Value;
             appointment.PatientId = id;
-            appointment.DoctorId = currentUserId.Value;
+            appointment.DoctorId = currentUserId;
             appointment.Status = "Gepland";
 
             _context.Appointments.Add(appointment);
-
             _context.AuditLogs.Add(new AuditLog
             {
-                UserId = currentUserId.Value,
+                UserId = currentUserId,
                 Action = "Afspraak Gepland",
                 Timestamp = DateTime.Now,
                 Details = $"Patiënt ID: {id}, Type: {appointment.Type}, Datum: {appointment.DateTime}"
@@ -196,8 +185,7 @@ namespace RevaliInstruct.Api.Controllers
         [HttpPut("{id}/appointments/{appId}")]
         public async Task<IActionResult> UpdateAppointment(int id, int appId, [FromBody] Appointment dto)
         {
-            var currentUserId = _currentUserService.UserId;
-            if (currentUserId == null) return Unauthorized();
+            if (!await HasAccessToPatient(id)) return Forbid(); // US9
 
             var app = await _context.Appointments.FirstOrDefaultAsync(a => a.Id == appId && a.PatientId == id);
             if (app == null) return NotFound("Afspraak niet gevonden.");
@@ -208,7 +196,7 @@ namespace RevaliInstruct.Api.Controllers
 
             _context.AuditLogs.Add(new AuditLog
             {
-                UserId = currentUserId.Value,
+                UserId = _currentUserService.UserId!.Value,
                 Action = "Afspraak Gewijzigd",
                 Timestamp = DateTime.Now,
                 Details = $"Afspraak ID: {appId}, Nieuw type: {dto.Type}, Nieuwe datum: {dto.DateTime}"
@@ -221,8 +209,7 @@ namespace RevaliInstruct.Api.Controllers
         [HttpPatch("{id}/appointments/{appId}/cancel")]
         public async Task<IActionResult> CancelAppointment(int id, int appId)
         {
-            var currentUserId = _currentUserService.UserId;
-            if (currentUserId == null) return Unauthorized();
+            if (!await HasAccessToPatient(id)) return Forbid(); // US9
 
             var app = await _context.Appointments.FirstOrDefaultAsync(a => a.Id == appId && a.PatientId == id);
             if (app == null) return NotFound("Afspraak niet gevonden.");
@@ -231,7 +218,7 @@ namespace RevaliInstruct.Api.Controllers
 
             _context.AuditLogs.Add(new AuditLog
             {
-                UserId = currentUserId.Value,
+                UserId = _currentUserService.UserId!.Value,
                 Action = "Afspraak Geannuleerd",
                 Timestamp = DateTime.Now,
                 Details = $"Afspraak ID: {appId} geannuleerd voor patiënt {id}"
@@ -244,21 +231,20 @@ namespace RevaliInstruct.Api.Controllers
         [HttpPost("{id}/declarations")]
         public async Task<IActionResult> CreateDeclaration(int id, [FromBody] Declaration dec)
         {
-            var currentUserId = _currentUserService.UserId;
-            if (currentUserId == null) return Unauthorized();
+            if (!await HasAccessToPatient(id)) return Forbid(); // US9
 
             if (dec.Amount < 0) return BadRequest("Bedrag mag niet negatief zijn.");
 
+            var currentUserId = _currentUserService.UserId!.Value;
             dec.PatientId = id;
-            dec.DoctorId = currentUserId.Value;
+            dec.DoctorId = currentUserId;
             dec.Date = DateTime.Now;
             dec.Status = "Geregistreerd";
 
             _context.Declarations.Add(dec);
-
             _context.AuditLogs.Add(new AuditLog
             {
-                UserId = currentUserId.Value,
+                UserId = currentUserId,
                 Action = "Declaratie Geregistreerd",
                 Timestamp = DateTime.Now,
                 Details = $"Patiënt ID: {id}, Type: {dec.TreatmentType}, Bedrag: €{dec.Amount}"
@@ -271,17 +257,15 @@ namespace RevaliInstruct.Api.Controllers
         [HttpPatch("{id}/declarations/{decId}/mark-declared")]
         public async Task<IActionResult> MarkAsDeclared(int id, int decId)
         {
-            var currentUserId = _currentUserService.UserId;
-            if (currentUserId == null) return Unauthorized();
+            if (!await HasAccessToPatient(id)) return Forbid(); // US9
 
             var dec = await _context.Declarations.FirstOrDefaultAsync(d => d.Id == decId && d.PatientId == id);
             if (dec == null) return NotFound();
 
             dec.Status = "Gedeclareerd";
-
             _context.AuditLogs.Add(new AuditLog
             {
-                UserId = currentUserId.Value,
+                UserId = _currentUserService.UserId!.Value,
                 Action = "Status Declaratie Gewijzigd",
                 Timestamp = DateTime.Now,
                 Details = $"Declaratie ID: {decId} naar 'Gedeclareerd'"
@@ -294,23 +278,21 @@ namespace RevaliInstruct.Api.Controllers
         [HttpPost("{id}/notes")]
         public async Task<IActionResult> AddNote(int id, [FromBody] PatientNoteDto dto)
         {
-            var currentUserId = _currentUserService.UserId;
-            if (currentUserId == null) return Unauthorized();
+            if (!await HasAccessToPatient(id)) return Forbid(); // US9
 
+            var currentUserId = _currentUserService.UserId!.Value;
             var note = new PatientNote
             {
                 PatientId = id,
-                AuthorUserId = currentUserId.Value,
-                Timestamp = DateTime.Now, // Automatische tijdstempel
+                AuthorUserId = currentUserId,
+                Timestamp = DateTime.Now,
                 Content = dto.Content
             };
 
             _context.PatientNotes.Add(note);
-
-            // Registreer in Audit Trail (Eis US8)
             _context.AuditLogs.Add(new AuditLog
             {
-                UserId = currentUserId.Value,
+                UserId = currentUserId,
                 Action = "Notitie Toegevoegd",
                 Timestamp = DateTime.Now,
                 Details = $"Nieuwe notitie voor patiënt {id}"
@@ -321,12 +303,14 @@ namespace RevaliInstruct.Api.Controllers
         }
 
         [HttpPut("{id}/notes/{noteId}")]
-        public async Task<IActionResult> UpdateNote(int id, int noteId, [FromBody] string content)
+        public async Task<IActionResult> UpdateNote(int id, int noteId, [FromBody] PatientNoteDto dto)
         {
+            if (!await HasAccessToPatient(id)) return Forbid(); // US9
+
             var note = await _context.PatientNotes.FindAsync(noteId);
             if (note == null || note.AuthorUserId != _currentUserService.UserId) return Forbid();
 
-            note.Content = content;
+            note.Content = dto.Content;
             note.Timestamp = DateTime.Now;
             await _context.SaveChangesAsync();
             return Ok(note);
@@ -335,6 +319,8 @@ namespace RevaliInstruct.Api.Controllers
         [HttpDelete("{id}/notes/{noteId}")]
         public async Task<IActionResult> DeleteNote(int id, int noteId)
         {
+            if (!await HasAccessToPatient(id)) return Forbid(); // US9
+
             var note = await _context.PatientNotes.FindAsync(noteId);
             if (note == null || note.AuthorUserId != _currentUserService.UserId) return Forbid();
 

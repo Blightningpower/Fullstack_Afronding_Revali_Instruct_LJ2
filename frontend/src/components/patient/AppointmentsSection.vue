@@ -1,27 +1,27 @@
 <template>
-  <section class="dossier-section appointment-section">
-    <div class="section-header">
-      <h3 class="dossier-section-title">📅 Afspraken & Sessies</h3>
-      <button @click="toggleForm" :class="['btn-toggle', { 'active': showForm }]">
+  <section class="appointment-section">
+    <div class="appointment-header">
+      <h3 class="section-title">📅 Afspraken & Sessies</h3>
+      <button @click="toggleForm" :class="['btn-toggle', { 'is-active': showForm }]">
         {{ showForm ? 'Annuleren' : '+ Nieuwe Afspraak' }}
       </button>
     </div>
 
     <transition name="slide-fade">
-      <div v-if="showForm" class="appointment-form card shadow-sm">
+      <div v-if="showForm" class="appointment-form-card">
         <div class="form-grid">
           <div class="form-group" :class="{ 'has-error': submitted && !newApp.dateTime }">
-            <label>Datum & Tijd <span class="required">*</span></label>
+            <label class="form-label">Datum & Tijd <span class="required-mark">*</span></label>
             <input 
               type="datetime-local" 
               v-model="newApp.dateTime" 
               :min="minDateTime"
-              class="styled-input"
+              class="form-input"
             />
           </div>
           <div class="form-group">
-            <label>Type Sessie</label>
-            <select v-model="newApp.type" class="styled-input">
+            <label class="form-label">Type Sessie</label>
+            <select v-model="newApp.type" class="form-input">
               <option>Controle</option>
               <option>Fysio sessie</option>
               <option>Evaluatie</option>
@@ -29,26 +29,26 @@
             </select>
           </div>
           <div class="form-group">
-            <label>Duur (minuten)</label>
+            <label class="form-label">Duur (minuten)</label>
             <input 
               type="number" 
               v-model="newApp.duration" 
               min="5" 
               step="5"
-              class="styled-input"
+              class="form-input"
             />
           </div>
         </div>
         
-        <div class="form-actions">
+        <div class="form-footer">
           <button 
             @click="saveAppointment" 
-            class="btn-save-appointment" 
-            :class="{ 'btn-disabled': submitted && !isFormValid }"
+            class="btn-submit" 
+            :disabled="submitted && !isFormValid"
           >
             Afspraak Inplannen
           </button>
-          <p v-if="submitted && !isFormValid" class="validation-hint">
+          <p v-if="submitted && !isFormValid" class="error-text">
             ⚠️ Kies een geldig moment in de toekomst.
           </p>
         </div>
@@ -56,34 +56,36 @@
     </transition>
 
     <div class="appointment-list">
-      <div v-for="app in sortedAppointments" :key="app.id || app.Id" class="appointment-row"
-        :class="{ 'status-cancelled': (app.status || app.Status) === 'Geannuleerd' }">
+      <div v-for="app in sortedAppointments" :key="app.id || app.Id" class="appointment-item"
+        :class="{ 'is-cancelled': (app.status || app.Status) === 'Geannuleerd' }">
 
-        <div class="app-info">
-          <div class="app-date">{{ formatDateTime(app.dateTime || app.DateTime) }}</div>
-          <div class="app-meta">
-            <span class="app-type">{{ app.type || app.Type }}</span>
-            <span class="app-duration">({{ app.duration || app.Duration }} min)</span>
+        <div class="item-main">
+          <div class="item-date">{{ formatDateTime(app.dateTime || app.DateTime) }}</div>
+          <div class="item-details">
+            <span class="type-tag">{{ app.type || app.Type }}</span>
+            <span class="duration-tag">{{ app.duration || app.Duration }} min</span>
           </div>
         </div>
         
-        <div class="app-status-box">
+        <div class="item-status">
           <span class="status-pill"
-            :class="(app.status || app.Status) === 'Geannuleerd' ? 'pill-cancelled' : 'pill-planned'">
+            :class="(app.status || app.Status) === 'Geannuleerd' ? 'status-red' : 'status-blue'">
             {{ app.status || app.Status }}
           </span>
         </div>
 
-        <div class="app-actions">
+        <div class="item-actions">
           <button v-if="(app.status || app.Status) !== 'Geannuleerd'" 
                   @click="cancelApp(app.id || app.Id)"
-                  class="btn-cancel-small">
+                  class="btn-action-cancel">
             Annuleren
           </button>
         </div>
       </div>
-      <div v-if="!sortedAppointments.length" class="empty-state">
-        📭 Geen afspraken gevonden.
+
+      <div v-if="!sortedAppointments.length" class="empty-list">
+        <span class="empty-icon">📭</span>
+        <p>Geen afspraken gevonden voor deze patiënt.</p>
       </div>
     </div>
   </section>
@@ -97,7 +99,7 @@ const props = defineProps(['patientId', 'appointments']);
 const emit = defineEmits(['refresh']);
 
 const showForm = ref(false);
-const submitted = ref(false); // Houdt bij of er op 'opslaan' is geklikt
+const submitted = ref(false);
 const newApp = ref({ dateTime: '', type: 'Fysio sessie', duration: 30 });
 
 const minDateTime = computed(() => {
@@ -107,13 +109,13 @@ const minDateTime = computed(() => {
 
 const isFormValid = computed(() => {
   if (!newApp.value.dateTime) return false;
-  // Blokkeer datums in het verleden (US6 AC 1)
+  // US6 AC 1: Blokkeer verleden tijd
   return new Date(newApp.value.dateTime) >= new Date();
 });
 
 const toggleForm = () => {
   showForm.value = !showForm.value;
-  submitted.value = false; // Reset de foutmeldingen bij het sluiten/openen
+  submitted.value = false;
 };
 
 const sortedAppointments = computed(() => {
@@ -123,11 +125,8 @@ const sortedAppointments = computed(() => {
 });
 
 const saveAppointment = async () => {
-  submitted.value = true; // Activeer de validatie-weergave
-
-  if (!isFormValid.value) {
-    return; // Stop als het formulier niet geldig is
-  }
+  submitted.value = true;
+  if (!isFormValid.value) return;
 
   try {
     const payload = {
@@ -138,13 +137,12 @@ const saveAppointment = async () => {
     };
 
     await api.post(`/patients/${props.patientId}/appointments`, payload);
-    alert("Afspraak succesvol opgeslagen.");
     showForm.value = false;
     submitted.value = false;
     newApp.value = { dateTime: '', type: 'Fysio sessie', duration: 30 };
     emit('refresh');
   } catch (err) {
-    alert("Fout bij opslaan: " + (err.response?.data?.title || err.message));
+    console.error(err);
   }
 };
 
@@ -154,7 +152,7 @@ const cancelApp = async (appId) => {
     await api.patch(`/patients/${props.patientId}/appointments/${appId}/cancel`);
     emit('refresh');
   } catch (err) {
-    alert("Fout bij annuleren: " + err.message);
+    console.error(err);
   }
 };
 
@@ -166,114 +164,217 @@ const formatDateTime = (d) => {
 </script>
 
 <style scoped>
-.appointment-form {
-    background: #fafdff;
-    border: 1px solid #d2f0f7;
-    padding: 24px;
-    border-radius: 12px;
-    margin-bottom: 24px;
+/* Sectie Layout */
+.appointment-section {
+  margin-top: 32px;
+  background: white;
+  border-radius: 12px;
+}
+
+.appointment-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 20px;
+  border-bottom: 2px solid #eaf6fb;
+  margin-bottom: 24px;
+}
+
+.section-title {
+  color: #2a7ca3;
+  font-weight: 700;
+  margin: 0;
+}
+
+/* Knoppen */
+.btn-toggle {
+  background: #fafdff;
+  color: #2a7ca3;
+  border: 2px solid #d2f0f7;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-toggle.is-active {
+  background: #fff5f5;
+  color: #c53030;
+  border-color: #feb2b2;
+}
+
+.btn-submit {
+  background: #3bb3ce;
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 4px 6px rgba(59, 179, 206, 0.2);
+}
+
+.btn-submit:disabled {
+  background: #cbd5e0;
+  box-shadow: none;
+  cursor: not-allowed;
+}
+
+/* Formulier */
+.appointment-form-card {
+  background: #fafdff;
+  border: 2px solid #eaf6fb;
+  padding: 24px;
+  border-radius: 12px;
+  margin-bottom: 32px;
 }
 
 .form-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-    gap: 16px;
-    margin-bottom: 20px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 20px;
+  margin-bottom: 24px;
 }
 
-.styled-input {
-    width: 100%;
-    padding: 10px;
-    border: 1.5px solid #eaf6fb;
-    border-radius: 8px;
-    font-size: 1rem;
-    transition: border-color 0.2s;
+.form-label {
+  display: block;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #2a7ca3;
+  margin-bottom: 8px;
 }
 
-.styled-input:focus {
-    border-color: #3bb3ce;
-    outline: none;
+.form-input {
+  width: 100%;
+  padding: 12px;
+  border: 2px solid #eaf6fb;
+  border-radius: 8px;
+  font-size: 1rem;
+  background: white;
+  outline: none;
 }
 
-.btn-save-appointment {
-    background: #3bb3ce;
-    color: white;
-    border: none;
-    padding: 12px 24px;
-    border-radius: 8px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: opacity 0.2s;
+.form-input:focus {
+  border-color: #3bb3ce;
 }
 
-.btn-save-appointment:disabled {
-    background: #cbd5e0;
-    cursor: not-allowed;
+.required-mark {
+  color: #e53e3e;
 }
 
-.validation-hint {
-    font-size: 0.85rem;
-    color: #e53e3e;
-    margin-top: 8px;
+.error-text {
+  color: #e53e3e;
+  font-size: 0.85rem;
+  margin-top: 12px;
+  font-weight: 600;
 }
 
-.appointment-row {
-    display: grid;
-    grid-template-columns: 2fr 1fr 1fr;
-    padding: 16px 20px;
-    border-bottom: 1px solid #eaf6fb;
-    align-items: center;
+/* Lijst items */
+.appointment-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 18px 24px;
+  border: 1px solid #eaf6fb;
+  border-radius: 10px;
+  margin-bottom: 12px;
+  transition: transform 0.2s;
 }
 
-.app-date {
-    font-weight: 600;
-    color: #2d3748;
+.appointment-item:hover {
+  transform: translateX(4px);
+  border-color: #d2f0f7;
 }
 
-.app-meta {
-    font-size: 0.85rem;
-    color: #718096;
+.item-date {
+  font-weight: 700;
+  font-size: 1.05rem;
+  color: #2d3748;
 }
 
-.pill-planned {
-    background: #ebf8ff;
-    color: #2b6cb0;
-    border: 1px solid #bee3f8;
+.item-details {
+  display: flex;
+  gap: 12px;
+  margin-top: 4px;
 }
 
-.pill-cancelled {
-    background: #fff5f5;
-    color: #c53030;
-    border: 1px solid #feb2b2;
+.type-tag {
+  color: #718096;
+  font-size: 0.85rem;
 }
 
-.btn-cancel-small {
-    background: transparent;
-    color: #e53e3e;
-    border: 1px solid #feb2b2;
-    padding: 4px 12px;
-    border-radius: 6px;
-    font-size: 0.8rem;
-    cursor: pointer;
+.duration-tag {
+  background: #f7fafc;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  color: #718096;
 }
 
-.btn-cancel-small:hover {
-    background: #fff5f5;
+/* Status Pillen */
+.status-pill {
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  font-weight: 700;
 }
 
-.status-cancelled {
-    opacity: 0.5;
-    background: #f8fafc;
+.status-blue {
+  background: #ebf8ff;
+  color: #2b6cb0;
+  border: 1px solid #bee3f8;
 }
 
+.status-red {
+  background: #fff5f5;
+  color: #c53030;
+  border: 1px solid #feb2b2;
+}
+
+.btn-action-cancel {
+  background: transparent;
+  color: #e53e3e;
+  border: 1.5px solid #feb2b2;
+  padding: 6px 14px;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.btn-action-cancel:hover {
+  background: #fff5f5;
+}
+
+.is-cancelled {
+  opacity: 0.6;
+  background: #f8fafc;
+}
+
+.empty-list {
+  text-align: center;
+  padding: 48px;
+  background: #fafdff;
+  border: 2px dashed #eaf6fb;
+  border-radius: 12px;
+}
+
+.empty-icon {
+  font-size: 2rem;
+  margin-bottom: 12px;
+  display: block;
+}
+
+/* Animatie */
 .slide-fade-enter-active,
 .slide-fade-leave-active {
-    transition: all 0.3s ease;
+  transition: all 0.3s ease;
 }
 
 .slide-fade-enter-from,
 .slide-fade-leave-to {
-    transform: translateY(-10px);
-    opacity: 0;
+  transform: translateY(-10px);
+  opacity: 0;
 }
 </style>

@@ -13,8 +13,9 @@
           <ExerciseSection :patientId="patient.id || patient.Id" :rawExercises="patient.exercises || patient.Exercises"
             @refresh="load" />
 
-          <PainAndActivity :painEntries="patient.painEntries || patient.PainEntries"
-            :activityLogs="patient.activityLogs || patient.ActivityLogs" />
+          <PainAndActivity :patientId="patient.id || patient.Id"
+            :activities="patient.activityLogEntries || patient.ActivityLogEntries"
+            :painEntries="patient.painEntries || patient.PainEntries" />
 
           <MedicationAndAccessories :medications="patient.medications || patient.Medications"
             :accessories="patient.accessoryAdvices || patient.AccessoryAdvices" />
@@ -68,7 +69,7 @@ const load = async () => {
       patient.value = dossier;
     }
   } catch (e) {
-    error.value = 'Fout bij laden van dossier.';
+    error.value = '403 Forbidden';
     console.error(e);
   } finally {
     loading.value = false;
