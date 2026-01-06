@@ -18,7 +18,8 @@ namespace RevaliInstruct.Core.Data
                 new User { Id = 4, Username = "ha_janssen", PasswordHash = staticHash, Role = "Huisarts", FirstName = "Thomas", LastName = "Janssen" },
                 new User { Id = 5, Username = "ra_smit", PasswordHash = staticHash, Role = "Revalidatiearts", FirstName = "Emma", LastName = "Smit" },
                 new User { Id = 6, Username = "ra_groen", PasswordHash = staticHash, Role = "Revalidatiearts", FirstName = "David", LastName = "Groen" },
-                new User { Id = 7, Username = "ra_visser", PasswordHash = staticHash, Role = "Revalidatiearts", FirstName = "Linda", LastName = "Visser" }
+                new User { Id = 7, Username = "ra_visser", PasswordHash = staticHash, Role = "Revalidatiearts", FirstName = "Linda", LastName = "Visser" },
+                new User { Id = 8, Username = "admin", PasswordHash = staticHash, Role = "Admin", FirstName = "Admin", LastName = "User" }
             );
 
             // 2. Patienten
@@ -265,16 +266,16 @@ namespace RevaliInstruct.Core.Data
 
             // 10. Intakegesprekken
             modelBuilder.Entity<IntakeRecord>().HasData(
-                new IntakeRecord { Id = 1, PatientId = 1, DoctorId = 5, Diagnosis = "Gescheurde kruisbanden (ACL)", Severity = "Ernstig", Goals = "Volledig herstel kniefunctie; wondgenezing; pijnmanagement", Date = new DateTime(2025, 1, 10) },
-                new IntakeRecord { Id = 2, PatientId = 2, DoctorId = 6, Diagnosis = "Hernia L5-S1", Severity = "Matig", Goals = "Pijnreductie; mobiliteit; terugkeer naar werk", Date = new DateTime(2025, 2, 1) },
-                new IntakeRecord { Id = 3, PatientId = 3, DoctorId = 5, Diagnosis = "Schouder impingement", Severity = "Licht tot matig", Goals = "Pijnvrij bewegen; krachtopbouw", Date = new DateTime(2025, 1, 15) },
-                new IntakeRecord { Id = 4, PatientId = 4, DoctorId = 7, Diagnosis = "Enkelverstuiking graad 2", Severity = "Matig", Goals = "Stabiliteit; belasting opbouw", Date = new DateTime(2025, 2, 5) },
-                new IntakeRecord { Id = 5, PatientId = 5, DoctorId = 6, Diagnosis = "Nekhernia C5-C6", Severity = "Ernstig", Goals = "Nekmobiliteit; zenuwherstel; pijncontrole", Date = new DateTime(2025, 3, 1) },
-                new IntakeRecord { Id = 6, PatientId = 6, DoctorId = 5, Diagnosis = "Chronische rugpijn", Severity = "Matig", Goals = "Activatie; coping mechanismen; functiebehoud", Date = new DateTime(2025, 2, 10) },
-                new IntakeRecord { Id = 7, PatientId = 7, DoctorId = 7, Diagnosis = "Gescheurde meniscus", Severity = "Ernstig", Goals = "Volledig herstel kniefunctie; pijnvrij sporten", Date = new DateTime(2025, 3, 5) },
-                new IntakeRecord { Id = 8, PatientId = 8, DoctorId = 6, Diagnosis = "Fibromyalgie", Severity = "Chronisch", Goals = "Pijnmanagement; energieniveau; levenskwaliteit", Date = new DateTime(2025, 4, 1) },
-                new IntakeRecord { Id = 9, PatientId = 9, DoctorId = 5, Diagnosis = "Carpale tunnelsyndroom", Severity = "Licht", Goals = "Pijnreductie; grijpkracht herstel", Date = new DateTime(2025, 3, 10) },
-                new IntakeRecord { Id = 10, PatientId = 10, DoctorId = 7, Diagnosis = "Knieartrose", Severity = "Matig", Goals = "Mobiliteit; pijnvermindering; spierversterking", Date = new DateTime(2025, 4, 5) }
+                new IntakeRecord { Id = 1, PatientId = 1, DoctorId = 5, Diagnosis = "Gescheurde kruisbanden (ACL)", Severity = "Ernstig", InitialGoals = "Volledig herstel kniefunctie; wondgenezing; pijnmanagement", Date = new DateTime(2025, 1, 10) },
+                new IntakeRecord { Id = 2, PatientId = 2, DoctorId = 6, Diagnosis = "Hernia L5-S1", Severity = "Matig", InitialGoals = "Pijnreductie; mobiliteit; terugkeer naar werk", Date = new DateTime(2025, 2, 1) },
+                new IntakeRecord { Id = 3, PatientId = 3, DoctorId = 5, Diagnosis = "Schouder impingement", Severity = "Licht tot matig", InitialGoals = "Pijnvrij bewegen; krachtopbouw", Date = new DateTime(2025, 1, 15) },
+                new IntakeRecord { Id = 4, PatientId = 4, DoctorId = 7, Diagnosis = "Enkelverstuiking graad 2", Severity = "Matig", InitialGoals = "Stabiliteit; belasting opbouw", Date = new DateTime(2025, 2, 5) },
+                new IntakeRecord { Id = 5, PatientId = 5, DoctorId = 6, Diagnosis = "Nekhernia C5-C6", Severity = "Ernstig", InitialGoals = "Nekmobiliteit; zenuwherstel; pijncontrole", Date = new DateTime(2025, 3, 1) },
+                new IntakeRecord { Id = 6, PatientId = 6, DoctorId = 5, Diagnosis = "Chronische rugpijn", Severity = "Matig", InitialGoals = "Activatie; coping mechanismen; functiebehoud", Date = new DateTime(2025, 2, 10) },
+                new IntakeRecord { Id = 7, PatientId = 7, DoctorId = 7, Diagnosis = "Gescheurde meniscus", Severity = "Ernstig", InitialGoals = "Volledig herstel kniefunctie; pijnvrij sporten", Date = new DateTime(2025, 3, 5) },
+                new IntakeRecord { Id = 8, PatientId = 8, DoctorId = 6, Diagnosis = "Fibromyalgie", Severity = "Chronisch", InitialGoals = "Pijnmanagement; energieniveau; levenskwaliteit", Date = new DateTime(2025, 4, 1) },
+                new IntakeRecord { Id = 9, PatientId = 9, DoctorId = 5, Diagnosis = "Carpale tunnelsyndroom", Severity = "Licht", InitialGoals = "Pijnreductie; grijpkracht herstel", Date = new DateTime(2025, 3, 10) },
+                new IntakeRecord { Id = 10, PatientId = 10, DoctorId = 7, Diagnosis = "Knieartrose", Severity = "Matig", InitialGoals = "Mobiliteit; pijnvermindering; spierversterking", Date = new DateTime(2025, 4, 5) }
             );
 
             // 11. Notities

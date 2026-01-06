@@ -1,7 +1,6 @@
 <template>
   <nav>
     <div class="nav-left">
-
       <svg width="240" height="60" viewBox="0 0 240 60" xmlns="http://www.w3.org/2000/svg">
         <defs>
           <linearGradient id="logoGrad" x1="0%" y1="0%" x2="100%" y2="100%">
@@ -19,23 +18,24 @@
         </text>
       </svg>
 
-      <router-link v-if="showPatientsLink" to="/patients" class="nav-link">
-        Patients
-      </router-link>
+      <div v-if="isLogged && !isLoginPage" class="nav-links">
+        <router-link v-if="currentRole === 'Revalidatiearts'" to="/patients" class="nav-link">
+          Patiënten
+        </router-link>
+
+        <router-link v-if="currentRole === 'Admin'" to="/audit" class="nav-link">
+          🛡️ Audit Trail
+        </router-link>
+      </div>
     </div>
 
     <div class="auth-actions" v-if="!isLoginPage">
       <span v-if="isLogged && currentUsername" class="user-label">
-        Ingelogd als <strong>{{ currentUsername }}</strong>
+        Ingelogd als <strong>{{ currentUsername }}</strong> ({{ currentRole }})
       </span>
 
-      <router-link v-if="!isLogged" to="/login" class="btn-login">
-        Login
-      </router-link>
-
-      <button v-else @click="handleLogout" class="btn-logout">
-        Logout
-      </button>
+      <router-link v-if="!isLogged" to="/login" class="btn-login">Login</router-link>
+      <button v-else @click="handleLogout" class="btn-logout">Logout</button>
     </div>
   </nav>
 
@@ -47,27 +47,23 @@
 <script setup>
 import { computed } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
-// Importeer de reactieve state en logout functie
 import { authState, logout as authLogout } from './services/AuthService';
 
 const router = useRouter();
 const route = useRoute();
 
-// Controleer of we op de loginpagina zijn
 const isLoginPage = computed(() => {
   const name = route.name ?? '';
   const path = route.path ?? '';
   return name === 'Login' || path === '/login';
 });
 
-const showPatientsLink = computed(() => !isLoginPage.value);
-
-// Gebruik de reactieve waarden uit AuthService
 const isLogged = computed(() => authState.isLogged);
 const currentUsername = computed(() => authState.username);
+const currentRole = computed(() => authState.role);
 
 function handleLogout() {
-  authLogout(); // Gebruik de centrale logout logica
+  authLogout();
   router.push('/login');
 }
 </script>
@@ -137,5 +133,10 @@ nav {
 .btn-login:hover,
 .btn-logout:hover {
   background: rgba(255, 255, 255, 0.18);
+}
+
+.nav-links {
+  display: flex;
+  gap: 1rem;
 }
 </style>

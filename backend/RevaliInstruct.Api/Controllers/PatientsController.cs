@@ -100,35 +100,32 @@ namespace RevaliInstruct.Api.Controllers
         [HttpPost("{id}/intake")]
         public async Task<IActionResult> CreateIntake(int id, [FromBody] IntakeDto dto)
         {
-            if (!await HasAccessToPatient(id)) return Forbid(); // US9
+            if (!await HasAccessToPatient(id)) return Forbid();
 
-            var patient = await _context.Patients
-                .Include(p => p.IntakeRecords)
-                .FirstAsync(p => p.Id == id);
+            var exists = await _context.IntakeRecords.AnyAsync(i => i.PatientId == id);
+            if (exists) return BadRequest("Intakeverslag bestaat al.");
 
-            if (patient.IntakeRecords != null && patient.IntakeRecords.Any())
-            {
-                return BadRequest("Er bestaat al een intakeverslag voor deze patiënt.");
-            }
-
-            var currentUserId = _currentUserService.UserId!.Value;
             var intake = new IntakeRecord
             {
                 PatientId = id,
-                DoctorId = currentUserId,
+                DoctorId = _currentUserService.UserId!.Value,
                 Diagnosis = dto.Diagnosis,
                 Severity = dto.Severity,
-                Goals = dto.Goals,
+                InitialGoals = dto.InitialGoals,
                 Date = DateTime.Now
             };
 
             _context.IntakeRecords.Add(intake);
+            await _context.SaveChangesAsync();
+
             _context.AuditLogs.Add(new AuditLog
             {
-                UserId = currentUserId,
-                Action = "Intake Geregistreerd",
+                UserId = _currentUserService.UserId!.Value,
+                Action = "INSERT",
+                TableName = "IntakeRecords",
+                RecordId = intake.Id,
                 Timestamp = DateTime.Now,
-                Details = $"Patiënt ID: {id}"
+                Details = $"Nieuwe intake voor patiënt {id}"
             });
 
             await _context.SaveChangesAsync();
@@ -138,7 +135,7 @@ namespace RevaliInstruct.Api.Controllers
         [HttpPost("{id}/exercises")]
         public async Task<IActionResult> AssignExercise(int id, [FromBody] ExerciseAssignmentDto dto)
         {
-            if (!await HasAccessToPatient(id)) return Forbid(); // US9
+            if (!await HasAccessToPatient(id)) return Forbid();
 
             var assignment = new ExerciseAssignment
             {
@@ -154,6 +151,17 @@ namespace RevaliInstruct.Api.Controllers
             };
 
             _context.ExerciseAssignments.Add(assignment);
+
+            _context.AuditLogs.Add(new AuditLog
+            {
+                UserId = _currentUserService.UserId!.Value,
+                Action = "INSERT",
+                Timestamp = DateTime.Now,
+                Details = $"Tabel: ExerciseAssignments, RecordID: {assignment.Id}, Patiënt: {id}",
+                TableName = "ExerciseAssignments",
+                RecordId = assignment.Id
+            });
+
             await _context.SaveChangesAsync();
 
             return Ok(new { message = "Oefening succesvol toegewezen" });
@@ -175,7 +183,9 @@ namespace RevaliInstruct.Api.Controllers
                 UserId = currentUserId,
                 Action = "Afspraak Gepland",
                 Timestamp = DateTime.Now,
-                Details = $"Patiënt ID: {id}, Type: {appointment.Type}, Datum: {appointment.DateTime}"
+                Details = $"Patiënt ID: {id}, Type: {appointment.Type}, Datum: {appointment.DateTime}",
+                TableName = "Appointments",
+                RecordId = appointment.Id
             });
 
             await _context.SaveChangesAsync();
@@ -185,7 +195,7 @@ namespace RevaliInstruct.Api.Controllers
         [HttpPut("{id}/appointments/{appId}")]
         public async Task<IActionResult> UpdateAppointment(int id, int appId, [FromBody] Appointment dto)
         {
-            if (!await HasAccessToPatient(id)) return Forbid(); // US9
+            if (!await HasAccessToPatient(id)) return Forbid();
 
             var app = await _context.Appointments.FirstOrDefaultAsync(a => a.Id == appId && a.PatientId == id);
             if (app == null) return NotFound("Afspraak niet gevonden.");
@@ -199,7 +209,9 @@ namespace RevaliInstruct.Api.Controllers
                 UserId = _currentUserService.UserId!.Value,
                 Action = "Afspraak Gewijzigd",
                 Timestamp = DateTime.Now,
-                Details = $"Afspraak ID: {appId}, Nieuw type: {dto.Type}, Nieuwe datum: {dto.DateTime}"
+                Details = $"Afspraak ID: {appId}, Nieuw type: {dto.Type}, Nieuwe datum: {dto.DateTime}",
+                TableName = "Appointments",
+                RecordId = app.Id
             });
 
             await _context.SaveChangesAsync();
@@ -209,7 +221,7 @@ namespace RevaliInstruct.Api.Controllers
         [HttpPatch("{id}/appointments/{appId}/cancel")]
         public async Task<IActionResult> CancelAppointment(int id, int appId)
         {
-            if (!await HasAccessToPatient(id)) return Forbid(); // US9
+            if (!await HasAccessToPatient(id)) return Forbid();
 
             var app = await _context.Appointments.FirstOrDefaultAsync(a => a.Id == appId && a.PatientId == id);
             if (app == null) return NotFound("Afspraak niet gevonden.");
@@ -221,7 +233,9 @@ namespace RevaliInstruct.Api.Controllers
                 UserId = _currentUserService.UserId!.Value,
                 Action = "Afspraak Geannuleerd",
                 Timestamp = DateTime.Now,
-                Details = $"Afspraak ID: {appId} geannuleerd voor patiënt {id}"
+                Details = $"Afspraak ID: {appId} geannuleerd voor patiënt {id}",
+                TableName = "Appointments",
+                RecordId = app.Id
             });
 
             await _context.SaveChangesAsync();
@@ -231,23 +245,24 @@ namespace RevaliInstruct.Api.Controllers
         [HttpPost("{id}/declarations")]
         public async Task<IActionResult> CreateDeclaration(int id, [FromBody] Declaration dec)
         {
-            if (!await HasAccessToPatient(id)) return Forbid(); // US9
-
+            if (!await HasAccessToPatient(id)) return Forbid();
             if (dec.Amount < 0) return BadRequest("Bedrag mag niet negatief zijn.");
 
-            var currentUserId = _currentUserService.UserId!.Value;
             dec.PatientId = id;
-            dec.DoctorId = currentUserId;
             dec.Date = DateTime.Now;
             dec.Status = "Geregistreerd";
 
             _context.Declarations.Add(dec);
+            await _context.SaveChangesAsync();
+
             _context.AuditLogs.Add(new AuditLog
             {
-                UserId = currentUserId,
-                Action = "Declaratie Geregistreerd",
+                UserId = _currentUserService.UserId!.Value,
+                Action = "INSERT",
+                TableName = "Declarations",
+                RecordId = dec.Id,
                 Timestamp = DateTime.Now,
-                Details = $"Patiënt ID: {id}, Type: {dec.TreatmentType}, Bedrag: €{dec.Amount}"
+                Details = $"Declaratie €{dec.Amount} voor type: {dec.TreatmentType}"
             });
 
             await _context.SaveChangesAsync();
@@ -257,7 +272,7 @@ namespace RevaliInstruct.Api.Controllers
         [HttpPatch("{id}/declarations/{decId}/mark-declared")]
         public async Task<IActionResult> MarkAsDeclared(int id, int decId)
         {
-            if (!await HasAccessToPatient(id)) return Forbid(); // US9
+            if (!await HasAccessToPatient(id)) return Forbid();
 
             var dec = await _context.Declarations.FirstOrDefaultAsync(d => d.Id == decId && d.PatientId == id);
             if (dec == null) return NotFound();
@@ -268,7 +283,9 @@ namespace RevaliInstruct.Api.Controllers
                 UserId = _currentUserService.UserId!.Value,
                 Action = "Status Declaratie Gewijzigd",
                 Timestamp = DateTime.Now,
-                Details = $"Declaratie ID: {decId} naar 'Gedeclareerd'"
+                Details = $"Declaratie ID: {decId} naar 'Gedeclareerd'",
+                TableName = "Declarations",
+                RecordId = dec.Id
             });
 
             await _context.SaveChangesAsync();
@@ -278,7 +295,7 @@ namespace RevaliInstruct.Api.Controllers
         [HttpPost("{id}/notes")]
         public async Task<IActionResult> AddNote(int id, [FromBody] PatientNoteDto dto)
         {
-            if (!await HasAccessToPatient(id)) return Forbid(); // US9
+            if (!await HasAccessToPatient(id)) return Forbid();
 
             var currentUserId = _currentUserService.UserId!.Value;
             var note = new PatientNote
@@ -293,9 +310,11 @@ namespace RevaliInstruct.Api.Controllers
             _context.AuditLogs.Add(new AuditLog
             {
                 UserId = currentUserId,
-                Action = "Notitie Toegevoegd",
+                Action = "INSERT",
                 Timestamp = DateTime.Now,
-                Details = $"Nieuwe notitie voor patiënt {id}"
+                Details = $"Nieuwe notitie voor patiënt {id}",
+                TableName = "PatientNotes",
+                RecordId = note.Id
             });
 
             await _context.SaveChangesAsync();
@@ -305,13 +324,24 @@ namespace RevaliInstruct.Api.Controllers
         [HttpPut("{id}/notes/{noteId}")]
         public async Task<IActionResult> UpdateNote(int id, int noteId, [FromBody] PatientNoteDto dto)
         {
-            if (!await HasAccessToPatient(id)) return Forbid(); // US9
+            if (!await HasAccessToPatient(id)) return Forbid();
 
             var note = await _context.PatientNotes.FindAsync(noteId);
             if (note == null || note.AuthorUserId != _currentUserService.UserId) return Forbid();
 
             note.Content = dto.Content;
             note.Timestamp = DateTime.Now;
+
+            _context.AuditLogs.Add(new AuditLog
+            {
+                UserId = _currentUserService.UserId!.Value,
+                Action = "UPDATE",
+                Timestamp = DateTime.Now,
+                Details = $"Tabel: PatientNotes, RecordID: {noteId}, Wijziging: Inhoud aangepast",
+                TableName = "PatientNotes",
+                RecordId = note.Id
+            });
+
             await _context.SaveChangesAsync();
             return Ok(note);
         }
@@ -319,10 +349,20 @@ namespace RevaliInstruct.Api.Controllers
         [HttpDelete("{id}/notes/{noteId}")]
         public async Task<IActionResult> DeleteNote(int id, int noteId)
         {
-            if (!await HasAccessToPatient(id)) return Forbid(); // US9
+            if (!await HasAccessToPatient(id)) return Forbid();
 
             var note = await _context.PatientNotes.FindAsync(noteId);
             if (note == null || note.AuthorUserId != _currentUserService.UserId) return Forbid();
+
+            _context.AuditLogs.Add(new AuditLog
+            {
+                UserId = _currentUserService.UserId!.Value,
+                Action = "DELETE",
+                Timestamp = DateTime.Now,
+                Details = $"Tabel: PatientNotes, RecordID: {noteId}",
+                TableName = "PatientNotes",
+                RecordId = note.Id
+            });
 
             _context.PatientNotes.Remove(note);
             await _context.SaveChangesAsync();

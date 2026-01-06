@@ -7,5 +7,7 @@ namespace RevaliInstruct.Core.Entities
         public string Action { get; set; } = string.Empty;
         public DateTime Timestamp { get; set; }
         public string Details { get; set; } = string.Empty;
+        public string TableName { get; set; } = string.Empty;
+        public int RecordId { get; set; }
     }
 }

@@ -35,18 +35,22 @@ const errorMessage = ref('');
 const loading = ref(false);
 
 async function handleSubmit() {
+  loading.value = true;
   try {
-    errorMessage.value = '';
-    loading.value = true;
-    await login(username.value.trim(), password.value.trim());
-    router.push('/patients');
+    const { role } = await login(username.value, password.value);
+
+    // Stuur de gebruiker direct naar de juiste pagina op basis van rol
+    if (role === 'Admin') {
+      await router.push('/audit');
+    } else {
+      await router.push('/patients');
+    }
   } catch (err) {
-    errorMessage.value = 'Inloggen mislukt. Controleer je gegevens.';
-    console.error(err);
+    errorMessage.value = "Inloggen mislukt: controleer je gegevens.";
   } finally {
     loading.value = false;
   }
-}
+};
 
 </script>
 

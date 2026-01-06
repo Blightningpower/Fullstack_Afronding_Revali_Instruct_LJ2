@@ -66,13 +66,19 @@ namespace RevaliInstruct.Api.Controllers
                 return StatusCode(500, new { error = error ?? "failed to generate token" });
             }
 
-            return Ok(new { token, expiresUtc = expires });
+            return Ok(new
+            {
+                token,
+                role = user.Role,
+                username = user.Username,
+                expiresUtc = expires
+            });
         }
 
         private (string? token, DateTime expiresUtc, string? error) GenerateJwtToken(User user)
         {
             // PRIORITEIT: Gebruik de sleutel die Program.cs uit de .env heeft geladen
-            var key = _config["JWT_SECRET"] 
+            var key = _config["JWT_SECRET"]
                       ?? _config["Jwt:Key"]
                       ?? _config["Jwt:Secret"]
                       ?? Environment.GetEnvironmentVariable("JWT_SECRET");

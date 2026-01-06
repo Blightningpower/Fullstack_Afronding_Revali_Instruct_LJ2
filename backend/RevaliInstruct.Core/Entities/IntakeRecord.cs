@@ -12,7 +12,7 @@ namespace RevaliInstruct.Core.Entities
         public int DoctorId { get; set; }
         public string Diagnosis { get; set; } = string.Empty;
         public string Severity { get; set; } = string.Empty;
-        public string Goals { get; set; } = string.Empty;
+        public string InitialGoals { get; set; } = string.Empty;
         public DateTime Date { get; set; }
     }
 }

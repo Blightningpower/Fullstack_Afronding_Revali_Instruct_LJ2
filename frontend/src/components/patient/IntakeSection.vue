@@ -2,29 +2,24 @@
     <section class="dossier-section">
         <h3 class="dossier-section-title">📋 Intakeverslag</h3>
 
-        <div v-if="currentIntake" class="intake-report">
-            <div class="report-meta">Opgesteld op: {{ formatDate(currentIntake.date || currentIntake.Date) }}</div>
+        <div v-if="intakeData" class="intake-report">
+            <div class="report-meta">
+                Opgesteld op: {{ formatDate(intakeData.date || intakeData.Date) }}
+            </div>
             <div class="report-grid">
-                <div class="report-item"><strong>Diagnose:</strong> {{ currentIntake.diagnosis ||
-                    currentIntake.Diagnosis }}</div>
-                <div class="report-item"><strong>Ernst:</strong> {{ currentIntake.severity || currentIntake.Severity }}
+                <div class="report-item">
+                    <strong>Diagnose:</strong> {{ intakeData.diagnosis || intakeData.Diagnosis }}
                 </div>
-                <div class="report-item full-width"><strong>Behandeldoelen:</strong> {{ currentIntake.goals ||
-                    currentIntake.Goals }}</div>
+                <div class="report-item">
+                    <strong>Ernst:</strong> {{ intakeData.severity || intakeData.Severity }}
+                </div>
+                <div class="report-item full-width">
+                    <strong>Behandeldoelen:</strong> {{ intakeData.initialGoals || intakeData.InitialGoals }}
+                </div>
             </div>
 
             <div class="notes-container">
-                <h4>Aanvullende Notities</h4>
-                <ul class="notes-list">
-                    <li v-for="note in processedNotes" :key="note.id" class="note-item">
-                        <small>{{ note.time }}</small>
-                        <p>{{ note.content }}</p>
-                    </li>
-                </ul>
-                <div class="add-note-box">
-                    <textarea v-model="newNote" placeholder="Nieuwe notitie..."></textarea>
-                    <button @click="saveNote" class="btn-small" :disabled="!newNote">Toevoegen</button>
-                </div>
+                <NoteSection :patientId="patientId" :notes="rawNotes" @refresh="$emit('refresh')" />
             </div>
         </div>
 
@@ -38,8 +33,13 @@
                     <option>Ernstig</option>
                 </select>
             </div>
-            <div class="form-group"><label>Doelen</label><textarea v-model="intakeForm.goals"></textarea></div>
-            <button @click="saveIntake" class="save-button">Intake Opslaan</button>
+            <div class="form-group">
+                <label>Doelen</label>
+                <textarea v-model="intakeForm.initialGoals"></textarea>
+            </div>
+            <button @click="saveIntake" class="save-button" :disabled="loading">
+                {{ loading ? 'Bezig met opslaan...' : 'Intake Opslaan' }}
+            </button>
         </div>
     </section>
 </template>
@@ -47,56 +47,37 @@
 <script setup>
 import { ref, computed } from 'vue';
 import api from '../../api/axios';
+import NoteSection from './NotesSection.vue';
 
 const props = defineProps(['patientId', 'rawIntakes', 'rawNotes']);
 const emit = defineEmits(['refresh']);
 
-const currentIntake = computed(() => props.rawIntakes?.[0] || null);
-const intakeForm = ref({ diagnosis: '', severity: 'Licht', goals: '' });
-const newNote = ref(''); // Dit is de variabele die je v-model gebruikt
+const loading = ref(false);
 
-const processedNotes = computed(() => (props.rawNotes || []).map(n => ({
-    id: n.id || n.Id,
-    content: n.content || n.Content,
-    time: new Date(n.timestamp || n.Timestamp).toLocaleString('nl-NL')
-})).sort((a, b) => new Date(b.time) - new Date(a.time)));
+// US3: Pak het eerste record uit de lijst
+const intakeData = computed(() => (props.rawIntakes && props.rawIntakes.length > 0) ? props.rawIntakes[0] : null);
 
-// 1. Fix voor de Intake (Diagnose/Doelen)
+const intakeForm = ref({
+    diagnosis: '',
+    severity: 'Matig',
+    initialGoals: '' // FIX: Match met DTO
+});
+
 const saveIntake = async () => {
+    loading.value = true;
     try {
         await api.post(`/patients/${props.patientId}/intake`, intakeForm.value);
-        alert("Intakeverslag succesvol opgeslagen!"); // Melding toegevoegd
+        alert("✅ Intakeverslag succesvol opgeslagen!");
         emit('refresh');
     } catch (err) {
         const errorMsg = err.response?.data?.message || err.message;
         alert("Fout bij opslaan intake: " + errorMsg);
+    } finally {
+        loading.value = false;
     }
 };
 
-// 2. Fix voor de Aanvullende Notities
-const saveNote = async () => {
-    if (!newNote.value.trim()) {
-        alert("Voer eerst een tekst in.");
-        return;
-    }
-
-    try {
-        await api.post(`/patients/${props.patientId}/notes`, {
-            content: newNote.value
-        });
-
-        // DE CRUCIALE FIX: Hier stond eerst geen alert
-        alert("Notitie succesvol toegevoegd!");
-
-        newNote.value = ''; // Veld leegmaken
-        emit('refresh');    // Lijst verversen
-    } catch (err) {
-        const errorMsg = err.response?.data?.message || err.message;
-        alert("Fout bij toevoegen notitie: " + errorMsg);
-    }
-};
-
-const formatDate = (d) => new Date(d).toLocaleDateString('nl-NL');
+const formatDate = (d) => d ? new Date(d).toLocaleString('nl-NL') : '';
 </script>
 
 <style scoped>
