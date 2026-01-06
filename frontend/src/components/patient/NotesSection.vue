@@ -1,5 +1,5 @@
 <template>
-    <section class="dossier-section notes-module">
+    <section class="dossier-section">
         <h3 class="dossier-section-title">📝 Aanvullende Notities</h3>
 
         <div class="note-input-container card shadow-sm">

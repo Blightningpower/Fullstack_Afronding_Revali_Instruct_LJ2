@@ -1,7 +1,7 @@
 <template>
-  <section class="appointment-section">
+  <section class="dossier-section">
     <div class="appointment-header">
-      <h3 class="section-title">📅 Afspraken & Sessies</h3>
+      <h3 class="dossier-section-title">📅 Afspraken & Sessies</h3>
       <button @click="toggleForm" :class="['btn-toggle', { 'is-active': showForm }]">
         {{ showForm ? 'Annuleren' : '+ Nieuwe Afspraak' }}
       </button>

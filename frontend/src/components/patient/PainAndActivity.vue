@@ -1,6 +1,6 @@
 <template>
     <div class="pain-activity-wrapper gap-4 d-flex flex-column">
-        <section class="dossier-section card revali-card shadow-sm">
+        <section class="dossier-section">
             <div class="section-header d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
                 <h3 class="dossier-section-title mb-0">📈 Pijnverloop (Trend)</h3>
 
@@ -53,8 +53,8 @@
             </div>
         </section>
 
-        <section class="dossier-section card revali-card shadow-sm">
-            <h3 class="dossier-section-title mb-4">📅 Activiteitenlogboek</h3>
+        <section class="dossier-section">
+            <h3 class="dossier-section-title">📅 Activiteitenlogboek</h3>
 
             <div class="timeline-container pl-2" v-if="filteredActivity.length">
                 <div class="timeline">

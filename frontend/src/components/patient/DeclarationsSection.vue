@@ -1,5 +1,5 @@
 <template>
-    <section class="dossier-section declaration-section">
+    <section class="dossier-section">
         <div class="section-header">
             <h3 class="dossier-section-title">💶 Declaraties & Kosten</h3>
             <button @click="showForm = !showForm" :class="['btn-toggle', { 'active': showForm }]">
