@@ -1,11 +1,10 @@
 import axios from "axios";
 
 const api = axios.create({
-  baseURL: "/api", // Vite proxy: /api -> http://localhost:5173
+  baseURL: "/api",
   timeout: 10000,
 });
 
-// Request interceptor: voeg token toe indien aanwezig
 api.interceptors.request.use(
   (config) => {
     try {
@@ -44,12 +43,11 @@ function handleServerInstanceHeader(headers) {
       } catch {}
       // update stored instance to newest so we don't loop forever
       localStorage.setItem("serverInstance", headerValue);
-      // redirect to login to force re-auth
+      // redirect to login to force re-authentication
       window.location.href = "/login";
       return;
     }
 
-    // store instance if first time
     if (!stored) {
       localStorage.setItem("serverInstance", headerValue);
     }
@@ -58,7 +56,6 @@ function handleServerInstanceHeader(headers) {
   }
 }
 
-// Response interceptor: controleer header en behandel 401
 api.interceptors.response.use(
   (response) => {
     try {
@@ -70,7 +67,6 @@ api.interceptors.response.use(
   },
   (error) => {
     try {
-      // als response aanwezig is: controleer header (kan helpen bij 401 na restart)
       if (error?.response) {
         handleServerInstanceHeader(error.response.headers);
 
@@ -81,7 +77,6 @@ api.interceptors.response.use(
           try {
             localStorage.removeItem("token");
           } catch {}
-          // redirect to login
           window.location.href = "/login";
         }
       }

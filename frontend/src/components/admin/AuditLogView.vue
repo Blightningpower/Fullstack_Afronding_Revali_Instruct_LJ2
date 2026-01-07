@@ -86,7 +86,6 @@ onMounted(fetchLogs);
   border-bottom: 1px solid #edf2f7;
 }
 
-/* Kleurcodering per actie conform AC6 */
 .row-insert { border-left: 4px solid #48bb78; }
 .row-update { border-left: 4px solid #ecc94b; }
 .row-delete { border-left: 4px solid #e53e3e; }

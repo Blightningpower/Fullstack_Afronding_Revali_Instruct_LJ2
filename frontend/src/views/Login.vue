@@ -39,7 +39,6 @@ async function handleSubmit() {
   try {
     const { role } = await login(username.value, password.value);
 
-    // Stuur de gebruiker direct naar de juiste pagina op basis van rol
     if (role === 'Admin') {
       await router.push('/audit');
     } else {

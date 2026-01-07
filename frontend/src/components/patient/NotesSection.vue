@@ -117,6 +117,7 @@ const formatDateTime = (d) => {
 </script>
 
 <style scoped>
+
 .note-input-container {
     padding: 1.5rem;
     background: #fafdff;
@@ -163,7 +164,6 @@ const formatDateTime = (d) => {
     font-weight: 500;
 }
 
-/* Notitie Kaarten */
 .note-entry {
     background: white;
     border: 1px solid #eaf6fb;

@@ -165,10 +165,8 @@ const chartOptions = {
     }
 };
 
-// Helpers
 const getPainClass = (s) => s >= 7 ? 'badge-high' : s >= 4 ? 'badge-mid' : 'badge-low';
 
-// DATUM FIX: Jaartal toegevoegd voor duidelijkheid
 const formatDate = (d) => new Date(d).toLocaleDateString('nl-NL', {
     day: '2-digit', month: 'short', year: 'numeric'
 });
@@ -178,7 +176,8 @@ const formatDateTime = (d) => new Date(d).toLocaleString('nl-NL', {
 </script>
 
 <style scoped>
-/* Algemene Card Stijl */
+
+/* ================= ALGEMENE STIJLEN ================= */
 .revali-card {
     border: none;
     border-radius: 16px;
@@ -315,7 +314,6 @@ const formatDateTime = (d) => new Date(d).toLocaleString('nl-NL', {
     content: '';
     position: absolute;
     left: 9px;
-    /* Centreren met de dots */
     top: 0;
     bottom: 0;
     width: 3px;

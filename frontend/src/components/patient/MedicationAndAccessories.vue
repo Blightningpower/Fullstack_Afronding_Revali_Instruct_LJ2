@@ -28,9 +28,7 @@ defineProps(['medications', 'accessories']);
 </script>
 
 <style scoped>
-/* ==========================================================================
-        MEDICATIE & HULPMIDDELEN
-   ========================================================================== */
+
 .info-list {
     display: grid;
     gap: 12px;

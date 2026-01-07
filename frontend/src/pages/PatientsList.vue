@@ -113,7 +113,6 @@ const load = async () => {
   error.value = ''
   try {
     items.value = await getPatients({
-      // Match de key met de backend: 'searchTerm' i.p.v. 'q'
       searchTerm: q.value?.trim() || undefined,
       status: status.value || undefined,
     })
@@ -129,9 +128,7 @@ onMounted(load)
 </script>
 
 <style>
-/* ==========================================================================
-    PATIËNTEN OVERZICHT
-   ========================================================================== */
+  
 .table {
   width: 100%;
   border-collapse: collapse;

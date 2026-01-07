@@ -54,13 +54,12 @@ const emit = defineEmits(['refresh']);
 
 const loading = ref(false);
 
-// US3: Pak het eerste record uit de lijst
 const intakeData = computed(() => (props.rawIntakes && props.rawIntakes.length > 0) ? props.rawIntakes[0] : null);
 
 const intakeForm = ref({
     diagnosis: '',
     severity: 'Matig',
-    initialGoals: '' // FIX: Match met DTO
+    initialGoals: ''
 });
 
 const saveIntake = async () => {
@@ -81,9 +80,7 @@ const formatDate = (d) => d ? new Date(d).toLocaleString('nl-NL') : '';
 </script>
 
 <style scoped>
-/* ==========================================================================
-        INTAKE & NOTITIES
-   ========================================================================== */
+
 .intake-report {
     background: #fff;
     border: 2px solid #e2e8f0;

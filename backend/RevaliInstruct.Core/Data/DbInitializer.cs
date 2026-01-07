@@ -1,5 +1,3 @@
-using System;
-using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 
 namespace RevaliInstruct.Core.Data
@@ -10,7 +8,6 @@ namespace RevaliInstruct.Core.Data
         {
             try
             {
-                // Volledige reset
                 await context.Database.EnsureDeletedAsync();
                 Console.WriteLine("[DbInitializer] Database verwijderd.");
             }
@@ -19,7 +16,6 @@ namespace RevaliInstruct.Core.Data
                 Console.WriteLine($"[DbInitializer] Waarschuwing: verwijderen mislukt: {ex.Message}");
             }
 
-            // Maak database aan en voer HasData uit de context uit
             await context.Database.EnsureCreatedAsync();
             Console.WriteLine("[DbInitializer] Database succesvol aangemaakt en gevuld met code-data.");
         }

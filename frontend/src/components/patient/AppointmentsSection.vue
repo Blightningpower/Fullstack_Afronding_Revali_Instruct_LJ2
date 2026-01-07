@@ -109,7 +109,6 @@ const minDateTime = computed(() => {
 
 const isFormValid = computed(() => {
   if (!newApp.value.dateTime) return false;
-  // US6 AC 1: Blokkeer verleden tijd
   return new Date(newApp.value.dateTime) >= new Date();
 });
 
@@ -164,6 +163,7 @@ const formatDateTime = (d) => {
 </script>
 
 <style scoped>
+  
 /* Sectie Layout */
 .appointment-section {
   margin-top: 32px;

@@ -1,30 +1,28 @@
-
 # 🟪 Fullstack – RevaliInstruct
 
-RevaliInstruct is het revalidatie-onderdeel binnen het project **“Van Auw naar Beter!”**.  
-De applicatie biedt een web-omgeving voor zorgprofessionals om patiëntgegevens en revalidatietrajecten te beheren.
+RevaliInstruct is het revalidatie-onderdeel binnen het overkoepelende project **"Van Auw naar Beter!"**. De applicatie biedt een integrale web-omgeving voor zorgprofessionals om patiëntgegevens, medische intakes en revalidatietrajecten veilig te beheren.
 
 ---
 
-## 🛠️ Tech stack
+## 🛠️ Tech Stack
 
 ### Backend
 
-- .NET 10 (Web API, C#)
-- Entity Framework Core
-- SQL Server (via Docker-container)
-- RESTful endpoints onder `/api/...`
+* **Runtime**: .NET 10 (Web API, C#)
+* **ORM**: Entity Framework Core
+* **Database**: SQL Server (gedraaid via Docker-container)
+* **API**: RESTful endpoints onder `/api/...`
 
 ### Frontend
 
-- Vue 3 (met `<script setup>`)
-- Vue Router
-- Vite
-- Axios voor HTTP-calls naar de backend
+* **Framework**: Vue 3 (Composition API met `<script setup>`)
+* **Tooling**: Vite & Vue Router
+* **Communicatie**: Axios voor HTTP-calls naar de backend
+* **Visualisatie**: Chart.js voor trend-monitoring
 
 ---
 
-## 🚀 Project lokaal draaien
+## 🚀 Project Lokaal Draaien
 
 ### 1. Repository clonen
 
@@ -33,29 +31,29 @@ git clone git@github.com:blightningpower/Fullstack_Afronding_Revali_Instruct_LJ2
 cd Fullstack_Afronding_Revali_Instruct_LJ2
 ```
 
----
+### 2. Benodigde software
 
-## ✅ Benodigde software
-
-- [.NET SDK 10](https://dotnet.microsoft.com/)
-- [Node.js + npm](https://nodejs.org/)  
-- [Docker Desktop](https://www.docker.com/) (voor de SQL Server container en optioneel de API)
+* [.NET SDK 10](https://dotnet.microsoft.com/)
+* [Node.js + npm](https://nodejs.org/)
+* [Docker Desktop](https://www.docker.com/) (voor de SQL Server container)
 
 ---
 
-## 🔹 API starten – Alles lokaal via `npm run dev:full` (ontwikkelmodus)
+## 🔹 Opstartinstructies (Ontwikkelmodus)
 
-Dit is de modus die ik zelf gebruikt heb tijdens development.
+Dit project maakt gebruik van een gecombineerd opstartproces om zowel de frontend als de backend gelijktijdig te draaien.
 
-1. Zorg dat Docker **de SQL Server container draait**, maar **niet** de API:
+1. **Start de SQL Server container:**
+
+   Zorg dat Docker Desktop actief is en start alleen de database-onderdelen:
 
    ```bash
    docker-compose up revali_mssql db-init
    ```
 
-   - (of start alleen de database-container via Docker Desktop UI)
+2. **Start de applicatie (Full Stack):**
 
-2. Start vervolgens frontend + backend lokaal:
+   Navigeer naar de frontend map en gebruik het gecombineerde script:
 
    ```bash
    cd frontend
@@ -63,32 +61,46 @@ Dit is de modus die ik zelf gebruikt heb tijdens development.
    npm run dev:full
    ```
 
-   Dit doet:
-   - `dotnet watch run --project ../backend/RevaliInstruct.Api`
-   - `vite`
+   **Wat dit commando doet:**
 
-3. Toegang:
-   - Frontend: [http://localhost:5173]
-   - Backend API: [http://localhost:5000]
+   * Start de backend API via `dotnet watch run`.
+   * Start de frontend via de Vite dev-server op poort 5173.
 
-> ⚠️ In deze modus **niet** ook nog `docker-compose up` voor de API draaien.
+3. **Toegang:**
+
+   * **Frontend**: <http://localhost:5173>
+   * **Backend API**: <http://localhost:5000>
+
+> [!IMPORTANT]
+> Draai in deze modus **niet** handmatig `docker-compose up` voor de API-container om poort-conflicten te voorkomen. Gebruik Docker alleen voor de database.
 
 ---
 
-## 🧪 Tests draaien (optioneel)
+## 🔐 Authenticatie & Testaccounts
 
-_Backend tests:_
+De interface past zich automatisch aan op basis van de ingelogde rol. De volgende seed-gegevens zijn beschikbaar:
+
+| Gebruikersnaam | Wachtwoord    | Rol              |
+| ---            | ---           | ---              |
+| **ra_smit**    | `password123` | Revalidatiearts  |
+| **ra_groen**   | `password123` | Revalidatiearts  |
+| **ra_visser**  | `password123` | Revalidatiearts  |
+| **admin**      | `password123` | Systeembeheerder |
+
+---
+
+## 🧪 Tests Draaien (Optioneel)
+
+**Backend tests:**
 
 ```bash
 cd backend
 dotnet test
 ```
 
-_Frontend tests (indien aanwezig):_
+**Frontend tests:**
 
 ```bash
 cd frontend
 npm test
 ```
-
----

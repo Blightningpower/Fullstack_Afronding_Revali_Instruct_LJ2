@@ -2,11 +2,11 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using RevaliInstruct.Core.Data;
 using RevaliInstruct.Core.Entities;
-using Microsoft.AspNetCore.Authorization; // VOEG DEZE TOE
+using Microsoft.AspNetCore.Authorization;
 
 namespace RevaliInstruct.Api.Controllers
 {
-    [Authorize(Roles = "Admin")] // Nu herkent de compiler dit
+    [Authorize(Roles = "Admin")]
     [ApiController]
     [Route("api/[controller]")]
     public class AuditLogsController : ControllerBase

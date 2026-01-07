@@ -69,7 +69,7 @@ function handleLogout() {
 </script>
 
 <style>
-/* CSS Reset en Layout */
+  
 * {
   margin: 0;
   padding: 0;

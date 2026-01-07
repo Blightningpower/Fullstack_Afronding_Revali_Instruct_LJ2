@@ -1,7 +1,5 @@
 using Microsoft.EntityFrameworkCore;
 using RevaliInstruct.Core.Entities;
-using RevaliInstruct.Core.Data.Configurations;
-using RevaliInstruct.Core.Data.Enums;
 
 namespace RevaliInstruct.Core.Data
 {

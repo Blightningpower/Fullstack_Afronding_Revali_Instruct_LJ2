@@ -8,20 +8,17 @@ using RevaliInstruct.Api.Middleware;
 using RevaliInstruct.Core.Data;
 using RevaliInstruct.Api.Services;
 
-// CORS policy naam constant
+
 const string MyAllowedOrigins = "MyAllowedOrigins";
 
 var builder = WebApplication.CreateBuilder(args);
 
-// =====================
-// 1. .env handmatig inladen (Verbeterde versie)
-// =====================
 string currentDir = Directory.GetCurrentDirectory();
 string[] pathsToTry = {
-    Path.Combine(currentDir, ".env"),                          // Api folder
-    Path.Combine(currentDir, "..", ".env"),                   // backend folder
-    Path.Combine(currentDir, "..", "..", ".env"),             // Root folder
-    Path.Combine(AppDomain.CurrentDomain.BaseDirectory, ".env") // Naast de .exe
+    Path.Combine(currentDir, ".env"),                          
+    Path.Combine(currentDir, "..", ".env"),               
+    Path.Combine(currentDir, "..", "..", ".env"),             
+    Path.Combine(AppDomain.CurrentDomain.BaseDirectory, ".env")
 };
 
 bool envLoaded = false;
@@ -40,7 +37,6 @@ foreach (var path in pathsToTry)
                 var key = parts[0].Trim();
                 var value = parts[1].Trim();
                 
-                // Belangrijk: zet in beide plekken zodat DB én JWT het zien
                 Environment.SetEnvironmentVariable(key, value);
                 builder.Configuration[key] = value;
             }
@@ -52,19 +48,14 @@ foreach (var path in pathsToTry)
 
 if (!envLoaded) Console.WriteLine("[WAARSCHUWING] Geen .env bestand gevonden!");
 
-// =====================
-// 2. Services registreren
-// =====================
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
 builder.Services.AddControllers()
     .AddJsonOptions(options =>
     {
-        // 1. Forceert camelCase (firstName ipv FirstName) zodat Vue de data herkent
         options.JsonSerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase;
         
-        // 2. VOORKOMT DE 3,5 SEC VERTRAGING: negeert oneindige lussen (Cycles) in de data
         options.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles;
     });
 
@@ -104,7 +95,7 @@ builder.Services.AddCors(options =>
 });
 
 // =====================
-// 3. JWT Authenticatie
+//  JWT Authenticatie
 // =====================
 var secret = builder.Configuration["JWT_SECRET"] 
              ?? builder.Configuration["Jwt:Key"] 
@@ -158,7 +149,7 @@ builder.Services.AddAuthentication(options =>
 });
 
 // =====================
-// 4. Database connectie
+//  Database connectie
 // =====================
 var conn = builder.Configuration.GetConnectionString("DefaultConnection");
 if (string.IsNullOrEmpty(conn))
@@ -177,7 +168,7 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 );
 
 // =====================
-// 5. App Build & Middleware
+//  App Build & Middleware
 // =====================
 var app = builder.Build();
 

@@ -22,7 +22,6 @@ namespace RevaliInstruct.Api.Controllers
             _currentUserService = currentUserService;
         }
 
-        // Helper methode voor US9: Controleert of de patiënt aan deze arts is toegewezen
         private async Task<bool> HasAccessToPatient(int patientId)
         {
             var currentUserId = _currentUserService.UserId;
@@ -40,7 +39,7 @@ namespace RevaliInstruct.Api.Controllers
             var currentUserId = _currentUserService.UserId;
             if (currentUserId == null) return Unauthorized();
 
-            // AC 1: Filtert de lijst direct op toegewezen patiënten
+            // Filtert de lijst direct op toegewezen patiënten
             var query = _context.Patients
                 .Where(p => p.AssignedDoctorUserId == currentUserId);
 
@@ -75,7 +74,7 @@ namespace RevaliInstruct.Api.Controllers
         [HttpGet("{id}/dossier")]
         public async Task<ActionResult<Patient>> GetPatient(int id)
         {
-            if (!await HasAccessToPatient(id)) return Forbid(); // US9 AC 2
+            if (!await HasAccessToPatient(id)) return Forbid(); 
 
             var patient = await _context.Patients
                 .Include(p => p.ReferringDoctor)
@@ -170,7 +169,7 @@ namespace RevaliInstruct.Api.Controllers
         [HttpPost("{id}/appointments")]
         public async Task<IActionResult> CreateAppointment(int id, [FromBody] Appointment appointment)
         {
-            if (!await HasAccessToPatient(id)) return Forbid(); // US9
+            if (!await HasAccessToPatient(id)) return Forbid();
 
             var currentUserId = _currentUserService.UserId!.Value;
             appointment.PatientId = id;

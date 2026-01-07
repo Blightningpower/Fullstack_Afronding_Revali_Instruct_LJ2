@@ -32,7 +32,7 @@ namespace RevaliInstruct.Api.Controllers
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
 
-            // 1. User ophalen via EF
+            // User ophalen via EF
             var user = await _context.Users
                 .SingleOrDefaultAsync(u => u.Username == req.Username);
 
@@ -42,7 +42,7 @@ namespace RevaliInstruct.Api.Controllers
             if (string.IsNullOrEmpty(req.Password) || string.IsNullOrEmpty(user.PasswordHash))
                 return Unauthorized(new { error = "invalid credentials" });
 
-            // 2. Wachtwoord checken (BCrypt)
+            // Wachtwoord checken
             if (!BCrypt.Net.BCrypt.Verify(req.Password, user.PasswordHash))
             {
                 // Fallback voor ongehashte wachtwoorden in dev-omgeving
@@ -58,11 +58,10 @@ namespace RevaliInstruct.Api.Controllers
                 }
             }
 
-            // 3. JWT token genereren
+            // JWT token genereren
             var (token, expires, error) = GenerateJwtToken(user);
             if (token == null)
             {
-                // Als dit faalt, zie je een 500-error in de browser
                 return StatusCode(500, new { error = error ?? "failed to generate token" });
             }
 
@@ -77,7 +76,6 @@ namespace RevaliInstruct.Api.Controllers
 
         private (string? token, DateTime expiresUtc, string? error) GenerateJwtToken(User user)
         {
-            // PRIORITEIT: Gebruik de sleutel die Program.cs uit de .env heeft geladen
             var key = _config["JWT_SECRET"]
                       ?? _config["Jwt:Key"]
                       ?? _config["Jwt:Secret"]
@@ -91,7 +89,6 @@ namespace RevaliInstruct.Api.Controllers
                 return (null, default, "JWT key is not configured in backend settings.");
             }
 
-            // Bij een lege key klapt deze regel eruit met een 500 error
             var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(key));
             var credentials = new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256);
 

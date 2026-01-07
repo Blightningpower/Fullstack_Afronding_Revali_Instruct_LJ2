@@ -108,9 +108,7 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-    /* ==========================================================================
-        OEFENINGEN
-   ========================================================================== */
+    
 .exercise-entry {
   display: flex;
   justify-content: space-between;

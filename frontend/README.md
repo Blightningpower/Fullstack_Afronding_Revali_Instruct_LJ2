@@ -1,54 +1,95 @@
 # Revali Instruct – Frontend
 
-Dit is de Vue 3 + Vite frontend voor **Revali Instruct**, een webapplicatie waarmee zorgprofessionals patiëntdossiers kunnen inzien en beheren.
+Dit is de Vue 3 + Vite frontend voor **Revali Instruct**, een modern platform voor revalidatiebeheer. Hiermee kunnen zorgprofessionals patiëntdossiers inzien, trajecten monitoren en wordt elke medische actie veilig vastgelegd in een audit trail.
 
 ## 🔧 Vereisten
 
-- Node.js (versie 20+ aanbevolen)
-- NPM
-- .NET SDK (voor de backend `RevaliInstruct.Api`)
-- Backend draait lokaal op `http://localhost:5000`  
-  (dit wordt verondersteld door de Vite proxy in `vite.config.js`)
+- **Node.js** (versie 20+ aanbevolen)
+- **NPM** (beheert de dependencies)
+- **.NET SDK 8.0** (om de bijbehorende backend `RevaliInstruct.Api` te draaien)
+- De backend dient lokaal te draaien op `http://localhost:5000` (dit wordt afgehandeld via de Vite proxy).
 
-## 🌐 Tech stack
+## 🚀 Quick Start
 
-- [Vue 3](https://vuejs.org/) met `<script setup>` SFCs
-- [Vue Router](https://router.vuejs.org/) voor routing
-- [Vite](https://vitejs.dev/) als bundler/dev server
-- [Axios](https://axios-http.com/) voor HTTP-calls naar de .NET backend API
+1. **naar frontend map gaan:**
 
-## 📁 Projectstructuur (globaal)
+   ```bash
+   cd frontend
+   ```
 
-- `src/App.vue` – Shell van de app + navigatie (login/logout, Patients-link)
-- `src/main.js` – Entreepunt, mount Vue + router
-- `src/router/index.js` – Routes (`/login`, `/patients`, `/patients/:id`) + auth-guard
-- `src/views/Login.vue` – Inlogpagina
-- `src/pages/PatientsList.vue` – Overzicht met zoek- en statusfilter
-- `src/pages/PatientDetail.vue` – Detailweergave van één patiënt
-- `src/api/patients.js` – API-calls voor patiënten
-- `src/services/api.js` – Axios instance + token & server-instance handling
-- `src/services/authService.js` – Login/logout helpers
-- `src/App.css` – Globale styling (tabellen, detailcards, statusbadges)
+2. **Dependencies installeren:**
 
-## 🔐 Authenticatie
+   ```bash
+   npm install
+   ```
 
-- JWT-token wordt na inloggen opgeslagen in `localStorage` onder sleutel `token`.
-- Routes `/patients` en `/patients/:id` zijn beschermd via een **router-guard** (`meta.requiresAuth`).
-- Voorbeeldlogin (zoals op de loginpagina getoond):  
-  **gebruikersnaam:** `doctor`  
-  **wachtwoord:** `doctor123`  
+3. **backend en frontend Development server starten:**
 
-_Pas deze sectie aan als de echte seedgegevens anders zijn._
+   ```bash
+   npm run dev:Full
+   ```
 
-## 🌍 API & proxy
+4. **Applicatie openen:**
+   De app is nu bereikbaar op `http://localhost:5173`.
 
-Alle API-calls gaan naar `/api/...`.  
-Vite proxy in `vite.config.js` stuurt dit door naar de .NET backend:
+## 🌐 Tech Stack
+
+- **Framework:** [Vue 3](https://vuejs.org/) met de Composition API (`<script setup>`).
+- **Routing:** [Vue Router](https://router.vuejs.org/) voor navigatie tussen overzichten en dossiers.
+- **Build Tool:** [Vite](https://vitejs.dev/) voor een razendsnelle ontwikkelervaring.
+- **HTTP Client:** [Axios](https://axios-http.com/) voor communicatie met de .NET API.
+- **Visualisatie:** [Chart.js](https://www.chartjs.org/) voor het weergeven van pijnverloop-trends.
+
+## 📁 Projectstructuur (Modulair)
+
+De frontend is opgebouwd uit herbruikbare modules om een consistente gebruikerservaring te garanderen:
+
+- **`src/pages/`**: Bevat de hoofdpagina's zoals `PatientsList.vue` (overzicht) en `PatientDetail.vue` (het dossier).
+- **`src/components/patient/`**: De modulaire dossier-onderdelen:
+  - `IntakeSection.vue`: Registratie en onveranderlijke weergave van de intake (US3).
+  - `ExerciseSection.vue`: Toewijzen en monitoren van het oefenprogramma.
+  - `AppointmentsSection.vue`: Planning van fysio-sessies en evaluaties.
+  - `PainAndActivity.vue`: Trend-grafieken voor pijnscores en activiteitenlogs.
+  - `NotesSection.vue`: Chronologische tijdlijn voor aanvullende medische notities.
+- **`src/admin/`**: Onderdelen specifiek voor systeembeheerders, zoals de `AuditLogView.vue` (US10).
+- **`src/services/`**: Bevat de `AuthService.js` voor login-afhandeling en routebescherming.
+
+## 🔐 Authenticatie & Rollen
+
+De applicatie maakt gebruik van beveiligde JWT-tokens die worden opgeslagen in de `localStorage`. De interface past zich automatisch aan op basis van de ingelogde rol:
+
+| Rol                 | Toegang                                                  |
+| :------------------ | :------------------------------------------------------- |
+| **Revalidatiearts** | Patiëntenlijst, Medische Dossiers, Behandelplannen.      |
+| **Admin**           | Systeem-brede Audit Trail (monitoren van alle mutaties). |
+
+**Testaccounts (Seed data):**
+
+- **Arts:** `ra_smit` / `password123`
+- **Arts:** `ra_groen` / `password123`
+- **Arts:** `ra_visser` / `password123`
+- **Admin:** `admin` / `password123`
+
+## 🎨 Design Standaard: De "Revali Card"
+
+Voor een rustige en professionele uitstraling in de zorgomgeving gebruiken alle secties de `dossier-card` standaard:
+
+- **Kaartstijl:** Witte achtergrond, afgeronde hoeken (16px) en een zachte Revali-blauwe rand (`#eaf6fb`).
+- **Interactie:** Actieknoppen maken gebruik van de kenmerkende groen-blauwe gradiënt.
+- **Status:** Duidelijke "pills" geven de status van afspraken, declaraties en oefeningen aan.
+
+## 🌍 API & Proxy configuratie
+
+Alle API-calls vanuit de frontend gaan naar `/api/...`. De Vite configuratie stuurt deze verzoeken automatisch door naar de backend server:
 
 ```js
+// vite.config.js snippet
 server: {
-  port: 5173,
   proxy: {
-    '/api': { target: 'http://localhost:5000', changeOrigin: true }
+    '/api': {
+      target: 'http://localhost:5000',
+      changeOrigin: true
+    }
   }
 }
+```

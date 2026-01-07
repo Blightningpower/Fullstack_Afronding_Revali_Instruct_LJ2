@@ -2,7 +2,6 @@ import { createRouter, createWebHistory } from 'vue-router'
 import Login from '../views/Login.vue'
 import PatientsList from '../pages/PatientsList.vue'
 import PatientDetail from '../pages/PatientDetail.vue'
-// Importeer de authState om de rol te kunnen controleren
 import { authState } from '../services/AuthService'
 
 const routes = [
@@ -25,7 +24,6 @@ const routes = [
     path: '/audit', 
     name: 'AuditLogView', 
     component: () => import('../components/admin/AuditLogView.vue'), 
-    // US10: Specifieke rol-eis toevoegen
     meta: { requiresAuth: true, role: 'Admin' } 
   }
 ]
