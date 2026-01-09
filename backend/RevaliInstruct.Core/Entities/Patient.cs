@@ -14,7 +14,7 @@ namespace RevaliInstruct.Core.Entities
         public PatientStatus Status { get; set; } = PatientStatus.IntakePlanned;
         public DateTime? StartDate { get; set; }
 
-        // De ingelogde Revalidatiearts
+        // De Revalidatiearts
         public int AssignedDoctorUserId { get; set; }
         public User? AssignedDoctor { get; set; }
 
@@ -22,7 +22,7 @@ namespace RevaliInstruct.Core.Entities
         public int? ReferringDoctorUserId { get; set; }
         public User? ReferringDoctor { get; set; }
 
-        // Navigatie-property voor ActiviteinlogEntries
+        // Navigatie-property voor ActiviteitlogEntries
         public List<ActivityLogEntry> ActivityLogEntries { get; set; } = new();
 
         public ICollection<PainEntry> PainEntries { get; set; } = new List<PainEntry>();

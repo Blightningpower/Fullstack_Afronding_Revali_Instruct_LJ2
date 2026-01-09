@@ -12,14 +12,13 @@ namespace RevaliInstruct.Tests
         [Fact]
         public async Task GetLibrary_ReturnsAllAvailableExercises()
         {
-            // Arrange: Setup InMemory Database
+            // Arrange
             var options = new DbContextOptionsBuilder<ApplicationDbContext>()
                 .UseInMemoryDatabase(databaseName: "ExercisesTestDb")
                 .Options;
 
             using var context = new ApplicationDbContext(options);
             
-            // Voeg test-oefeningen toe
             context.Exercises.AddRange(new List<Exercise>
             {
                 new Exercise { Id = 1, Name = "Kniebuiging", Description = "Test 1" },
@@ -29,10 +28,10 @@ namespace RevaliInstruct.Tests
 
             var controller = new ExercisesController(context);
 
-            // Act: Haal de bibliotheek op
+            // Act
             var result = await controller.GetLibrary();
 
-            // Assert: Controleer of de lijst beide oefeningen bevat
+            // Assert
             result.Value.Should().NotBeNull();
             result.Value.Should().HaveCount(2);
             result.Value.Should().Contain(e => e.Name == "Kniebuiging");

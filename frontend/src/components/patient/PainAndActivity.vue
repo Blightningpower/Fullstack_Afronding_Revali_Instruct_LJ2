@@ -96,7 +96,6 @@ import {
     Filler
 } from 'chart.js';
 
-// Registreer Chart.js componenten
 ChartJS.register(Title, Tooltip, Legend, LineElement, LinearScale, PointElement, CategoryScale, Filler);
 
 const props = defineProps(['patientId', 'activities', 'painEntries']);
@@ -120,12 +119,11 @@ const filteredActivity = computed(() => {
     return data.sort((a, b) => new Date(b.timestamp || b.Timestamp) - new Date(a.timestamp || a.Timestamp));
 });
 
-// Chart.js Configuratie
 const chartData = computed(() => ({
     labels: filteredPain.value.map(e => formatDate(e.timestamp || e.Timestamp)),
     datasets: [{
         label: 'Pijnscore (VAS)',
-        backgroundColor: 'rgba(59, 179, 206, 0.15)', // Iets donkerder voor beter contrast
+        backgroundColor: 'rgba(59, 179, 206, 0.15)',
         borderColor: '#3bb3ce',
         borderWidth: 2.5,
         data: filteredPain.value.map(e => e.score || e.Score),
@@ -208,7 +206,6 @@ const formatDateTime = (d) => new Date(d).toLocaleString('nl-NL', {
     border: 2px solid #eaf6fb;
     border-radius: 8px;
     padding: 6px 10px 6px 32px;
-    /* Ruimte voor icoon */
     font-size: 0.9rem;
     color: #234;
     background: #fafdff;
@@ -233,7 +230,6 @@ const formatDateTime = (d) => new Date(d).toLocaleString('nl-NL', {
 
 .chart-container-inner {
     height: 320px;
-    /* Vaste hoogte voor consistentie */
     position: relative;
 }
 

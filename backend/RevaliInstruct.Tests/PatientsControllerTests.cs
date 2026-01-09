@@ -25,7 +25,7 @@ namespace RevaliInstruct.Tests
             _context = new ApplicationDbContext(options);
 
             _mockUser = new Mock<ICurrentUserService>();
-            _mockUser.Setup(m => m.UserId).Returns(5); // Ingelogd als Arts #5
+            _mockUser.Setup(m => m.UserId).Returns(5);
 
             _controller = new PatientsController(_context, _mockUser.Object);
         }
@@ -57,7 +57,6 @@ namespace RevaliInstruct.Tests
             result.Should().BeOfType<OkObjectResult>();
             var intake = await _context.IntakeRecords.FirstOrDefaultAsync(i => i.PatientId == 10);
             
-            // Fix voor CS8602: Gebruik ! na controle
             intake.Should().NotBeNull();
             intake!.Diagnosis.Should().Be("Breuk");
 
@@ -110,7 +109,7 @@ namespace RevaliInstruct.Tests
             
             var log = await _context.AuditLogs.FirstOrDefaultAsync(l => l.TableName == "PatientNotes");
             log.Should().NotBeNull();
-            log!.RecordId.Should().Be(note!.Id); // Verifieert fix voor ID #0
+            log!.RecordId.Should().Be(note!.Id);
         }
         #endregion
     }

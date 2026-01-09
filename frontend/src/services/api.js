@@ -25,7 +25,7 @@ api.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-// Helper: controleer server instance header en clear token bij mismatch
+// Helper
 function handleServerInstanceHeader(headers) {
   try {
     const headerValue =
@@ -34,16 +34,13 @@ function handleServerInstanceHeader(headers) {
 
     const stored = localStorage.getItem("serverInstance");
     if (stored && stored !== headerValue) {
-      // server instance changed -> clear token and force login
       console.warn(
         "Detected backend restart (server instance changed). Clearing token and reloading."
       );
       try {
         localStorage.removeItem("token");
       } catch {}
-      // update stored instance to newest so we don't loop forever
       localStorage.setItem("serverInstance", headerValue);
-      // redirect to login to force re-authentication
       window.location.href = "/login";
       return;
     }

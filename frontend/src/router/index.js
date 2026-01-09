@@ -2,7 +2,7 @@ import { createRouter, createWebHistory } from 'vue-router'
 import Login from '../views/Login.vue'
 import PatientsList from '../pages/PatientsList.vue'
 import PatientDetail from '../pages/PatientDetail.vue'
-import { authState } from '../services/AuthService'
+import { authState, logout as authLogout } from '../services/AuthService'
 
 const routes = [
   { path: '/', redirect: '/patients' }, 
@@ -34,27 +34,26 @@ const router = createRouter({
 })
 
 router.beforeEach((to, from, next) => {
-  const token = localStorage.getItem('token')
-  const userRole = authState.role 
+  const token = localStorage.getItem('token');
+  const userRole = authState.role;
 
-  // Redirect als ingelogde gebruiker naar juiste startpagina
   if (to.path === '/login' && token) {
-    return userRole === 'Admin' ? next('/audit') : next('/patients')
+    if (userRole === 'Admin') return next('/audit');
+    if (userRole === 'Revalidatiearts') return next('/patients');
+    return next();
   }
 
-  // Authenticatie check
-  if (to.meta?.requiresAuth && !token) {
-    return next('/login')
+  // Check voor beveiligde pagina's
+  if (to.meta?.requiresAuth) {
+    if (!token) return next('/login');
+
+    // Check rol-gebaseerde toegang
+    if (to.meta.role && to.meta.role !== userRole) {
+      return next(userRole === 'Admin' ? '/audit' : '/patients');
+    }
   }
 
-  // Rol-gebaseerde check
-  if (to.meta?.role && to.meta.role !== userRole) {
-    console.warn(`Toegang geweigerd: Rol ${userRole} heeft geen rechten voor ${to.path}`)
-    
-    return userRole === 'Admin' ? next('/audit') : next('/patients')
-  }
+  next();
+});
 
-  next()
-})
-
-export default router
+export default router;

@@ -1,0 +1,15 @@
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using RevaliInstruct.Core.Entities;
+
+namespace RevaliInstruct.Core.Data.Configurations
+{
+    public class IntakeRecordConfiguration : IEntityTypeConfiguration<IntakeRecord>
+    {
+        public void Configure(EntityTypeBuilder<IntakeRecord> builder)
+        {
+            // Traceerbaarheid voor intake-gegevens inschakelen
+            builder.ToTable("IntakeRecords", tb => tb.IsTemporal());
+        }
+    }
+}

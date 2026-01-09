@@ -48,7 +48,7 @@ namespace RevaliInstruct.Api.Middleware
                 }
                 catch
                 {
-                    // Fout bij instellen session context negeren
+                    // Fout bij instellen session context negeren :)
                 }
             }
 

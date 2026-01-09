@@ -5,15 +5,15 @@
       <form @submit.prevent="handleSubmit" class="form">
         <label class="field">
           <span>Gebruikersnaam</span>
-          <input v-model="username" type="text" placeholder="bijv. doctor" required />
+          <input v-model="username" data-test="username-input" type="text" placeholder="bijv. doctor" required />
         </label>
 
         <label class="field">
           <span>Wachtwoord</span>
-          <input v-model="password" type="password" placeholder="bijv. doctor123" required />
+          <input v-model="password" data-test="password-input" type="password" placeholder="bijv. doctor123" required />
         </label>
 
-        <button type="submit" class="btn-primary" :disabled="loading">
+        <button type="submit" data-test="login-submit" class="btn-primary" :disabled="loading">
           {{ loading ? 'Bezig met inloggen...' : 'Inloggen' }}
         </button>
 
@@ -36,20 +36,25 @@ const loading = ref(false);
 
 async function handleSubmit() {
   loading.value = true;
+  errorMessage.value = "";
+
   try {
     const { role } = await login(username.value, password.value);
 
     if (role === 'Admin') {
       await router.push('/audit');
-    } else {
+    } else if (role === 'Revalidatiearts') {
       await router.push('/patients');
+    } else {
+      authLogout(); 
+      errorMessage.value = `Toegang geweigerd: De rol '${role}' heeft geen toegang tot deze applicatie.`;
     }
   } catch (err) {
-    errorMessage.value = "Inloggen mislukt: controleer je gegevens.";
+    errorMessage.value = "Inloggen mislukt: controleer je gebruikersnaam en wachtwoord.";
   } finally {
     loading.value = false;
   }
-};
+}
 
 </script>
 

@@ -41,7 +41,7 @@ namespace RevaliInstruct.Tests
             // Act
             var result = await _controller.Login(new LoginRequestDto { Username = "testuser", Password = password });
 
-            // Assert: Fix voor CS8602 door expliciete type check en null-safety
+            // Assert
             var okResult = result.Should().BeOfType<OkObjectResult>().Subject;
             okResult.Value.Should().NotBeNull();
             okResult.Value!.ToString().Should().Contain("token");

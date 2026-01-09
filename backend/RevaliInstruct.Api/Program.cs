@@ -184,7 +184,6 @@ app.UseAuthentication();
 app.UseMiddleware<SqlSessionContextMiddleware>();
 app.UseAuthorization();
 
-// Database Initialisatie (RESET of SEED)
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();

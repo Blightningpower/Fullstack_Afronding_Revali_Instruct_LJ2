@@ -12,7 +12,7 @@ export async function apiFetch(input: RequestInfo, init?: RequestInit) {
 
 	const res = await fetch(input, {
 		...init,
-		credentials: init?.credentials ?? "same-origin", // of "include" als je cookies gebruikt
+		credentials: init?.credentials ?? "same-origin",
 		headers
 	});
 
